@@ -1,0 +1,24 @@
+<launch>
+	<node 	pkg="flea_ros" 
+			name = "flea_cam"
+			type = "flea_ros_server" >
+	</node>
+	<node 	pkg="image_view" 
+			name = "disp"
+			type = "image_view" 
+			args="image:=/camera/image_raw" >
+	</node>
+	<node name="track_rod"
+	 	 	pkg="plane_camera_magnet" 
+			type = "track_rod"
+			output="screen">
+			<param name="param_file" value = "$(find plane_camera_magnet)/calib/blobparam.yml"/>
+			<param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal.yml"/>
+	</node>
+	<node name="visualization_pixels"
+	 	 	pkg="plane_camera_magnet" 
+			type = "visualization_pixels"
+			output="screen">
+			<param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal.yml"/>
+	</node>
+</launch>

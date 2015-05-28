@@ -1,0 +1,8 @@
+# 2 magnet trackers for coordinate in pix and timestamp
+Header header
+float64 mag1x
+float64 mag1y
+float64 mag2x
+float64 mag2y
+
+

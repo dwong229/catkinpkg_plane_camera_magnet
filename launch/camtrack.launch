@@ -1,0 +1,28 @@
+<launch>
+	<include file="/home/denise/catkin_ws/src/flea3/launch/plane_magnet.launch"> 
+			<arg name="device" value="14434226"/>
+	</include>
+	<node	pkg="image_proc"
+			name="image_proc"
+			type="image_proc"
+			ns="pg_14434226">
+	</node>
+	<node 	pkg="image_view" 
+			name = "disp"
+			type = "image_view" 
+			args="image:=/pg_14434226/image_rect" >
+	</node>
+	<node name="track_rod_orient"
+	 	 	pkg="plane_camera_magnet" 
+			type = "track_rod_orient"
+			output="screen">
+			<param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal.yml"/>
+			<param name="param_file" value = "$(find plane_camera_magnet)/calib/blobparam.yml"/>
+	</node>
+	<node name="visualization_pixels"
+	 	 	pkg="plane_camera_magnet" 
+			type = "visualization_pixels"
+			output="screen">
+			<param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal.yml"/>
+	</node>
+</launch>

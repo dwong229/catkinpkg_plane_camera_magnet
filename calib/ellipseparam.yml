@@ -1,0 +1,10 @@
+%YAML:1.0
+minThreshold: 20
+maxThreshold: 100
+minArea: 6
+maxArea: 200
+minConvexity: 0.7
+maxConvexity: 10
+minInertiaRatio: 0
+blobColor: 0
+filterByCircularity: 0
