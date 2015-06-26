@@ -23,9 +23,9 @@
 using namespace std;
 using namespace cv;
 
-static const std::string OPENCV_WINDOW = "track_rod_orient window";
+static const std::string OPENCV_WINDOW = "track_circle window";
 
-/* track_rod_orient.cpp : Subscribes to '/camera/image_raw', uses fitellipse to identify magnet and orientation.
+/* track_circle.cpp : Subscribes to '/camera/image_raw', uses fitellipse to identify magnet position.
 publishes vector x,y-posn in camera coordinates (pixels) of magnets to xyPix
 - run cal_magnet_track.cpp got calibration a
 - calibration values stored in cal.yml (in calib/)
@@ -33,6 +33,7 @@ TO ADD:
   - calibration at the beginning of script to identify ROI
   - mask using calibration ROI
   - intelligent filter for position of magnets
+  - orientation using a white circle within the magnet?
 */
 
 //RNG rng(12345);
@@ -102,7 +103,7 @@ public:
     waitKey(1);
 
     std::string param_file;
-    nh_.param("param_file", param_file, std::string("ellipseparam.yml"));
+    nh_.param("param_file", param_file, std::string("circleparam.yml"));
     ROS_INFO_STREAM("param file " << param_file);
     FileStorage fs(param_file.c_str(), FileStorage::READ);  
 
@@ -134,32 +135,33 @@ public:
       return;
     }
 
+    Mat drawing;
     // process image
-    blur( cv_ptr->image , cv_ptr->image , Size(3,3) );
+    //blur( cv_ptr->image , drawing , Size(3,3) );
+    GaussianBlur( cv_ptr->image, drawing, Size(3,3), 2, 2 );
 
     plane_camera_magnet::xyPix xymsg; //publish
     xymsg.header.stamp = ros::Time::now();
-    Mat threshold_output;
-    vector<vector<Point> > contours;
+    vector<Vec3f> circles;
     vector<Vec4i> hierarchy;
-    //cout << "test" << endl;
-    // Detect edges using Threshold
-    threshold( cv_ptr->image, threshold_output, minThreshold, maxThreshold, THRESH_BINARY );
 
-    // Find contours, each contour is stored as a vector of points
-    findContours( threshold_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+    // Find circles
+    HoughCircles( drawing, circles, CV_HOUGH_GRADIENT, 1, drawing.rows/8, 200, 100, 0, 0 );
 
-    // Find the rotated rectangles and ellipse for each contour
-    vector<RotatedRect> minRect( contours.size() );
-    vector<RotatedRect> minEllipse( contours.size() );
-    int count = 0;
-    Mat drawing = Mat::zeros( threshold_output.size(), CV_8UC3 );
-    cvtColor(cv_ptr->image, drawing, CV_GRAY2RGB);
+    for( size_t i = 0; i < circles.size(); i++ )
+    {
+      Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+      int radius = cvRound(circles[i][2]);
+      // circle center
+      circle( cv_ptr->image, center, 3, Scalar(0,255,0), -1, 8, 0 );
+      // circle outline
+      circle( cv_ptr->image, center, radius, Scalar(0,0,255), 3, 8, 0 );
+    }
     
+    /*
     // loop through each contour, filter, draw
     for( int i = 0; i < contours.size(); i++ )
      { minRect[i] = minAreaRect( Mat(contours[i]) );
-      cout << "Contour Size: " << contours[i].size() << endl;
        if( contours[i].size() > minArea && contours[i].size() < maxArea )
          { minEllipse[i] = fitEllipse( Mat(contours[i]) );
          if (pow((minEllipse[i].center.y-ycenter),2) + pow((minEllipse[i].center.x-xcenter),2) < pow(radius,2.0) && minEllipse[i].size.area() < maxArea)
@@ -190,12 +192,12 @@ public:
             ellipse( drawing, minEllipse[i], color, 2, 8 );
           }
         }
-     }
+     }*/
      //cout<< "numrobots : " << count << endl;
-     if (count > 2){
+     /*if (count > 2){
 
       waitKey(10);
-     }
+     }*/
     sensor_msgs::ImagePtr imgout;
     // Update GUI Window
     if (visualize){
@@ -210,18 +212,18 @@ public:
     }
     
     // package position for xyReal.msg:
-    xymsg.numrobot = count;
+    //xymsg.numrobot = count;
 
-    if (contours.size()<1)
+    /*if (contours.size()<1)
       cout<<"No blobs detected.  Turn on light?" << endl;
     // Output position vector
-    xyMagnet_pub_.publish(xymsg);
+    xyMagnet_pub_.publish(xymsg); */
   }
 };
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "track_rod_orient"); // initialize node: magnet_track
+  ros::init(argc, argv, "track_circle"); // initialize node: magnet_track
   //ros::init(argc, argv, "magnetpose_real");
 
   ImageConverter ic;

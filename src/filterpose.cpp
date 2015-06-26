@@ -18,6 +18,9 @@
 #include <cv_bridge/cv_bridge.h> 
 #include <sstream>
 
+// Kalman filter
+#include "plane_camera_magnet/filter.h"
+
 using namespace std;
 using namespace cv;
 
@@ -264,6 +267,14 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
 
     cout << "SortOrder:" << minidx[0] << ',' << minidx[1] << endl;
     
+
+    // ********* Filter position *******************
+    // Kalman filter, based on constant velocity model
+
+    //1. Prediction:
+    
+    //2. Update: 
+
     //save to rosmsg
     xymsg.header.stamp = ros::Time::now();
     xymsg.xyPixX = lastposex;

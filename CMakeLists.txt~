@@ -153,6 +153,11 @@ target_link_libraries(filterpose
   plane_camera_magnet
 )
 
+add_executable(visualization_filtered src/visualization_filtered.cpp)
+target_link_libraries(visualization_filtered
+  ${catkin_LIBRARIES}
+)
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(plane_camera_magnet_node plane_camera_magnet_generate_messages_cpp)

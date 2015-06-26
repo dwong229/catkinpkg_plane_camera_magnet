@@ -2,7 +2,7 @@
 minThreshold: 20
 maxThreshold: 100
 minArea: 6
-maxArea: 200
+maxArea: 200 % 200 for pdms parts
 minConvexity: 0.7
 maxConvexity: 10
 minInertiaRatio: 0

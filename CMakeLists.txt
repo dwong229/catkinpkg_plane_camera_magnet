@@ -131,6 +131,11 @@ target_link_libraries(track_rod_orient
   ${catkin_LIBRARIES}
 )
 
+#add_executable(track_circle src/track_circle.cpp)
+#target_link_libraries(track_rod_orient
+#  ${catkin_LIBRARIES}
+#)
+
 add_executable(cal_plane_coils src/cal_plane_coils.cpp)
 target_link_libraries(cal_plane_coils
   ${catkin_LIBRARIES}

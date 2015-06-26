@@ -62,7 +62,7 @@ toggle = np.array([1.0])
 class _Getch:
     # initialize variables
     def __call__(self):
-            fd = sys.stdin.fileno()
+            fd = sys.stdin.fileno() 
             old_settings = termios.tcgetattr(fd)
             try:
                 tty.setraw(sys.stdin.fileno())

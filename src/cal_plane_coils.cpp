@@ -79,26 +79,26 @@ public:
 
     //Mat image(3,3,CV_32F,Scalar(5));
     // 1, Identify y-limits for track
-    cout << "Click on coil 1 center"<< endl;
+    cout << "Click on coil 1 center of workspace"<< endl;
     Point coil1 = getClick("image",cv_ptr->image);
     cout << "coil1: " << coil1 << endl;
     drawCross(cv_ptr->image, coil1, 5);
     waitKey(10);
 
-    cout << "Click on coil 2 "<< endl;
+    cout << "Click on coil 2 center of workspace"<< endl;
     Point coil2 = getClick("image",cv_ptr->image);
     cout << "coil2: " << coil2 << endl;
     drawCross(cv_ptr->image, coil2, 5);
     waitKey(10);
 
     // 2. Identify x limits
-    cout << "Click on coil 3"<< endl;
+    cout << "Click on coil 3 center of workspace"<< endl;
     Point coil3 = getClick("image",cv_ptr->image);
     cout << "coil3: " << coil3 << endl;
     drawCross(cv_ptr->image, coil3, 5);
     waitKey(10);
 
-    cout << "Click on coil4 of straw"<< endl;
+    cout << "Click on coil4 center of workspace"<< endl;
     Point coil4 = getClick("image",cv_ptr->image);
     cout << "coil4: " << coil4 << endl;
     drawCross(cv_ptr->image, coil4, 5);
@@ -111,7 +111,7 @@ public:
     double coilavgy = (coil1.y + coil2.y + coil3.y + coil4.y)/4;
     double dist13 = sqrt ( pow(coil1.x - coil3.x,2) + pow(coil1.y - coil3.y,2));
     double dist24 = sqrt ( pow(coil2.x - coil4.x,2) + pow(coil2.y - coil4.y,2));
-    double pix2m = (dist13 + dist24)/(2*d);
+    double pix2m = (dist13 + dist24)/(2*2*d);
 
     cout << "d(mm):" << d << endl;
     bool  updateYaml = true;

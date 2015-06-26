@@ -19,10 +19,4 @@
             <param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal.yml"/>
             <param name="param_file" value = "$(find plane_camera_magnet)/calib/ellipseparam.yml"/>
     </node>
-    <node name="filterpose"
-            pkg="plane_camera_magnet" 
-            type = "filterpose"
-            output="screen">
-            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calplane.yml"/>
-    </node>    
 </launch>

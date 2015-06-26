@@ -10,13 +10,16 @@ import rospy
 from plane_camera_magnet.msg import roboclawCmd
 from std_msgs.msg import String
 
+
 # for roboclaw : 
 import serial
 import struct
 import time
 import math
-import numpy
 import csv
+
+import sys,tty,termios
+import numpy as np
 
 try:
     import numpy
@@ -37,6 +40,12 @@ mu = 0.004
 u0 = math.pow(10,-7)*4*PI
 R = 0.0286
 mass = 0.000282
+
+global pwm, stepsize, toggle
+pwm = np.array([0,0,0,0])
+stepsize = 512.0/3
+toggle = np.array([1.0])
+
 #initialize m1val, m2val
 
 def sendcommand(address,command,port):
@@ -138,6 +147,70 @@ def readerrorstate(port):
     return -1
 # end for roboclaw
 
+class _Getch:
+    # initialize variables
+    def __call__(self):
+            fd = sys.stdin.fileno() 
+            old_settings = termios.tcgetattr(fd)
+            try:
+                tty.setraw(sys.stdin.fileno())
+                ch = sys.stdin.read(1) # for single variable
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+            return ch
+
+def get(): #(pwm,toggle,stepsize):
+        global pwm
+        print "Press key t to toggle +/-, j/i/l/m for coil left/up/right/down:"
+        inkey = _Getch()
+        loop = True
+        #toggle = 1
+        while(loop):
+             k=inkey()
+             print "Key pressed is " + k 
+             if k!='':break
+        if k=='t':
+            toggle[0] = toggle[0] * (-1)
+        
+        elif k == "j":
+             pwm[0] = pwm[0] + stepsize*toggle[0];
+        elif k=='i':
+             pwm[1] = pwm[1] + stepsize*toggle[0];
+        elif k=='l':
+             pwm[2] = pwm[2] + stepsize*toggle[0];
+        elif k=='k':
+             pwm[3] = pwm[3] + stepsize*toggle[0];
+        elif k=='q':
+            loop = False
+            pwm[0] = 0
+            pwm[1] = 0
+            pwm[2] = 0
+            pwm[3] = 0
+        else:
+            print "not a registered value!"
+        print "pwm"
+        print pwm
+        # sign of pwm
+        pwmsign = np.sign(pwm)
+
+        # values greater than 512 limit
+        pwmlimit = np.absolute(pwm) > 512
+
+        # values below 512
+        pwmsave = np.absolute(pwm)<=512
+
+        #pwnnew=pwmnew.astype(int)
+        pwm = pwm*pwmsave + 512*pwmsign*pwmlimit
+
+        print pwm
+
+        print "toggle: " + str(toggle[0])
+        print stepsize
+        #return pwm,toggle,stepsize
+        return loop
+
+
+
 print "Roboclaw 4 Coil Inputs\r\n"
 def talker():
     # publishing to roboclawcommand topic
@@ -151,51 +224,41 @@ def talker():
     rcv2 = port24.read(32)
     print repr(rcv2)
 
-
     #rospy.init_node('talker',anonymous=True)
-    rate = rospy.Rate(0.5) #Hz
+    rate = rospy.Rate(100) #Hz
     msg = roboclawCmd();
     i = 0;
     while not rospy.is_shutdown():
         m1cur, m2cur = readcurrents(port13);
         print "Current C1: ",m1cur/10.0," C3: ",m2cur/10.0
-        rawvalStr = raw_input("Enter duty cycle for all coils (+-512) numbers separated by space:")    
-        rawvalStr = rawvalStr or noStr
+        
+        # Wait for keyboard input value: 
+        # hit t to toggle increase or decrease
+        # hit arrows to change value of each coils
+        loop = get() #(pwm,toggle,stepsize)
 
-        if rawvalStr == noStr:
-            SetM1DutyAccel(1500,0)
-            SetM2DutyAccel(1500,0)
-            SetM3DutyAccel(1500,0)
-            SetM4DutyAccel(1500,0)
-            print "Program ending..."
-            time.sleep(1)
-            break
-        else:
-            valStr = map(int,rawvalStr.split())
-            print valStr
-            SetM1DutyAccel(65535,valStr[0])
-            SetM2DutyAccel(65535,valStr[1])
-            SetM3DutyAccel(65535,valStr[2])
-            SetM4DutyAccel(65535,valStr[3])
-
-            print ("Coil1: ", valStr[0])
-            print ("Coil2: ", valStr[1])
-            print ("Coil3: ", valStr[2])
-            print ("Coil4: ", valStr[3])
-
-            time.sleep(1)
-
+        SetM1DutyAccel(65535,pwm[0])
+        SetM2DutyAccel(65535,pwm[1])
+        SetM3DutyAccel(65535,pwm[2])
+        SetM4DutyAccel(65535,pwm[3])
+        print ("Coil1: ", pwm[0])
+        print ("Coil2: ", pwm[1])
+        print ("Coil3: ", pwm[2])
+        print ("Coil4: ", pwm[3])
 
         #print('[m1val m2val]: {0:.3f}, {1:.3f}'.format(m1val,m2val))
 
-        msg.m1 = valStr[0];
-        msg.m2 = valStr[1];
-        msg.m3 = valStr[2];
-        msg.m4 = valStr[3];
+        msg.m1 = pwm[0];
+        msg.m2 = pwm[1];
+        msg.m3 = pwm[2];
+        msg.m4 = pwm[3];
         msg.header.stamp =  rospy.Time.now();
         #msg.xdes = -1;
         #msg.ydes = -1;
 
+        if(loop == False):
+            print "Exiting loop..."
+            break
         #SetM1Speed(m1val)
         #SetM2Speed(m2val)
 #        65535 or 1500 accel
@@ -216,11 +279,7 @@ def listener():
     # anonymous=True flag means that rospy will choose a unique
     # name for our 'listener' node so that multiple listeners can
     # run simultaneously.
-    
-    
     rospy.init_node('controller', anonymous=True)
-
-
     #rospy.Subscriber("/magnet_track/xyReal", xyReal, callback)
 
     # define timer that updates every x:
