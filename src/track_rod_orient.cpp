@@ -19,6 +19,7 @@
 #include <cv_bridge/cv_bridge.h> 
 #include <sensor_msgs/image_encodings.h>
 #include <plane_camera_magnet/xyPix.h>
+#include <tf/transform_broadcaster.h>
 
 using namespace std;
 using namespace cv;
@@ -76,7 +77,7 @@ public:
     xyMagnet_pub_ = nh_.advertise<plane_camera_magnet::xyPix>("xyPix",1);
     
     // nh_.param("/magnet_track/calib_file", cal_file, std::string("cal.yml"));
-    visualize = 1;
+    visualize = 0;
     
     std::string cal_file;    
     nh_.param("cal_file", cal_file, std::string("cal.yml"));
@@ -111,8 +112,8 @@ public:
     minArea = (int)fs["minArea"]; 
     maxArea = (int)fs["maxArea"];
 
-    if(visualize
-)      cv::namedWindow(OPENCV_WINDOW);
+    if(visualize)
+          cv::namedWindow(OPENCV_WINDOW);
   }//public
   ~ImageConverter()
   {
@@ -121,6 +122,16 @@ public:
 
   void imageCb(const sensor_msgs::ImageConstPtr& msg)
   {
+
+    //initialize tf:
+    static tf::TransformBroadcaster br;
+    tf::Transform transform;
+    transform.setOrigin(tf::Vector3(0,0,0));
+    tf::Quaternion q;
+    q.setRPY(0,0,0);
+    transform.setRotation(q);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(),"world", "/camera_frame"));
+
     
     cv_bridge::CvImagePtr cv_ptr;
     try
@@ -139,10 +150,12 @@ public:
 
     plane_camera_magnet::xyPix xymsg; //publish
     xymsg.header.stamp = ros::Time::now();
+    //xymsg.header.frame_id = msg->header.frame_id;
+
+    xymsg.header.frame_id = "/camera_frame";
     Mat threshold_output;
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
-    //cout << "test" << endl;
     // Detect edges using Threshold
     threshold( cv_ptr->image, threshold_output, minThreshold, maxThreshold, THRESH_BINARY );
 
@@ -159,7 +172,6 @@ public:
     // loop through each contour, filter, draw
     for( int i = 0; i < contours.size(); i++ )
      { minRect[i] = minAreaRect( Mat(contours[i]) );
-      cout << "Contour Size: " << contours[i].size() << endl;
        if( contours[i].size() > minArea && contours[i].size() < maxArea )
          { minEllipse[i] = fitEllipse( Mat(contours[i]) );
          if (pow((minEllipse[i].center.y-ycenter),2) + pow((minEllipse[i].center.x-xcenter),2) < pow(radius,2.0) && minEllipse[i].size.area() < maxArea)
@@ -201,13 +213,14 @@ public:
     if (visualize){
       cv::imshow( OPENCV_WINDOW, drawing );    
       cv::waitKey(3);
+    }
       // Output modified video stream
       //image_pub_.publish(cv_ptr->toImageMsg());
       
 
-      imgout = cv_bridge::CvImage(std_msgs::Header(), "bgr8", drawing).toImageMsg();
-      image_pub_.publish(imgout);
-    }
+    imgout = cv_bridge::CvImage(std_msgs::Header(), "bgr8", drawing).toImageMsg();
+    image_pub_.publish(imgout);
+    
     
     // package position for xyReal.msg:
     xymsg.numrobot = count;

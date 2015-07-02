@@ -14,8 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   rospy
   cmake_modules
+  tf
+  visualization_msgs
 )
-find_package(opencv2)
+find_package(OpenCV REQUIRED)
 find_package(flycapture)
 find_package(Eigen REQUIRED)
 include_directories(${Eigen_INCLUDE_DIRS})
@@ -116,6 +118,7 @@ include_directories(
  add_library(plane_camera_magnet
 #   src/${PROJECT_NAME}/plane_camera_magnet.cpp
    src/hw4_helpers.cpp
+   src/filter.cpp
  )
 target_link_libraries(plane_camera_magnet ${OpenCV_LIBS})
 ## Declare a cpp executable
@@ -161,6 +164,12 @@ target_link_libraries(filterpose
 add_executable(visualization_filtered src/visualization_filtered.cpp)
 target_link_libraries(visualization_filtered
   ${catkin_LIBRARIES}
+)
+
+add_executable(kf_pose src/kf_pose.cpp)
+target_link_libraries(kf_pose
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
 )
 
 ## Add cmake target dependencies of the executable/library

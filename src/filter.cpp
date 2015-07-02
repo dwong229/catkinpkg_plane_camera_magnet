@@ -1,5 +1,5 @@
 // Kartik Mohta, Oct 27, 2012 (vicon/ros/vicon_odom/src/filter.cpp)
-#include "plane_camera_magnet/filter.h"
+#include "filter.h"
 #include <Eigen/LU> // For matrix inverse
 
 KalmanFilter::KalmanFilter()
@@ -31,7 +31,8 @@ void KalmanFilter::initialize(const State_t &state,
 void KalmanFilter::processUpdate(double dt)
 {
   ProcessCov_t A = ProcessCov_t::Identity();
-  A.topRightCorner<3,3>() = Eigen::Vector3d(dt, dt, dt).asDiagonal();
+  //A.topRightCorner<3,3>() = Eigen::Vector3d(dt, dt, dt).asDiagonal();
+  A.topRightCorner<2,2>() = Eigen::Vector2d(dt, dt).asDiagonal();
 
   x = A*x;
   P = A*P*A.transpose() + Q;
@@ -43,7 +44,7 @@ void KalmanFilter::measurementUpdate(const Measurement_t &meas, double dt)
   H.setZero();
   H(0, 0) = 1;
   H(1, 1) = 1;
-  H(2, 2) = 1;
+  //H(2, 2) = 1;
 
   const Eigen::Matrix<double, n_states, n_meas> K = P * H.transpose() *
       (H*P*H.transpose() + R).inverse();

@@ -19,10 +19,11 @@
 #include <sstream>
 
 // Kalman filter
-#include "plane_camera_magnet/filter.h"
+//#include "plane_camera_magnet/filter.h"
 
 using namespace std;
 using namespace cv;
+
 
 /* filterpose.cpp : 
     - Subscribes to /track_rod_orient/xyPix
@@ -277,6 +278,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
 
     //save to rosmsg
     xymsg.header.stamp = ros::Time::now();
+    xymsg.header.frame_id = data.header.frame_id;
     xymsg.xyPixX = lastposex;
     xymsg.xyPixY = lastposey;
     xymsg.xySize = xyPixSizeVector;
