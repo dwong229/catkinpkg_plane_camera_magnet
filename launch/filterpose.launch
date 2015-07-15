@@ -5,4 +5,9 @@
         output="screen">
         <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calplane.yml"/>
     </node>    
+    <node name="kf_pose"
+        pkg="plane_camera_magnet"
+        type="kf_pose"
+        output="screen">
+    </node>
 </launch>

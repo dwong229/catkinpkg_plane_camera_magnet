@@ -166,7 +166,7 @@ def talker():
         m1cur, m2cur = readcurrents(port13);
         print "Current C1: ",m1cur/10.0," C3: ",m2cur/10.0
 
-        val = 512
+        val = 100
 
         m1val = [val, 0, 0, 0]
         m2val = [0, val, 0, 0]
@@ -191,7 +191,7 @@ def talker():
             msg.m4 = m4val[i];
             msg.header.stamp =  rospy.Time.now();
             pub.publish(msg);
-            time.sleep(2)
+            time.sleep(3)
 
         print "==============="
 

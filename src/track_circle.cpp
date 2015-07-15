@@ -112,8 +112,8 @@ public:
     minArea = (int)fs["minArea"]; 
     maxArea = (int)fs["maxArea"];
 
-    if(visualize
-)      cv::namedWindow(OPENCV_WINDOW);
+    if(visualize)
+          cv::namedWindow(OPENCV_WINDOW);
   }//public
   ~ImageConverter()
   {

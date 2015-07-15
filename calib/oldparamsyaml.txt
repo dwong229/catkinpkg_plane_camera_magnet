@@ -1,0 +1,18 @@
+%YAML:1.0
+minThreshold: 20
+maxThreshold: 100
+minArea: 6
+maxArea: 200
+minConvexity: 0.7
+maxConvexity: 10
+minInertiaRatio: 0
+blobColor: 0
+filterByCircularity: 0
+
+CV_HOUGH_GRADIENT: Define the detection method. Currently this is the only one available in OpenCV
+dp = 1: The inverse ratio of resolution
+min_dist = src_gray.rows/8
+param_1: 200
+param_2: 100
+min_radius: 0
+max_radius: 0

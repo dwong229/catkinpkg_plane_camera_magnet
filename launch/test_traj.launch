@@ -1,0 +1,8 @@
+<launch>
+    <node name="test_trajreading"
+        pkg ="plane_camera_magnet"
+        type = "test_trajreading"
+        output ="screen">
+        <param name="traj_filename" value="/home/denise/catkin_ws/src/plane_camera_magnet/traj.csv"/>
+    </node>
+</launch>

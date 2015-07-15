@@ -24,7 +24,7 @@
 using namespace std;
 using namespace cv;
 
-static const std::string OPENCV_WINDOW = "Calibration Image";
+static const std::string OPENCV_WINDOW = "image";
 
 /* magnet_track.cpp : Subscribes to '/camera/image_raw', uses simpleblobdetector to identify magnet.
 publishes vector x,y-posn in camera coordinates of magnets to xyReal
@@ -74,14 +74,13 @@ public:
       int width=cv_ptr->image.size().width;
       int height=cv_ptr->image.size().height;
 
-/*
       for(int i=0;i<height;i+=dist)
         cv::line(cv_ptr->image,Point(0,i),Point(width,i),cv::Scalar(255,255,255));
 
       for(int i=0;i<width;i+=dist)
         cv::line(cv_ptr->image,Point(i,0),Point(i,height),cv::Scalar(255,255,255));
 
-      for(int i=0;i<width;i+=dist)
+      /*for(int i=0;i<width;i+=dist)
         for(int j=0;j<height;j+=dist)
           cv_ptr->image.at<cv::Vec3b>(i,j)=cv::Scalar(10,10,10); 
           */
@@ -98,24 +97,11 @@ public:
 
     //Mat image(3,3,CV_32F,Scalar(5));
     // 1, Identify y-limits for track
-    int numcorners = 8;
-    vector<Point> rectcorners(numcorners);
-    double xtotal, ytotal;
-    cout << "Click on inner rectangle corner starting from top-left (lower) of workspace"<< endl;
-    for(int i=0;i<numcorners;i++)
-    { 
-    
-      Point pt = getClick("image",cv_ptr->image);
-      rectcorners[i] = pt;
-
-      cout << "point " << i << ":" << pt << endl;
-      drawCross(cv_ptr->image, pt, 4);
-      waitKey(10);
-
-      xtotal += pt.x;
-      ytotal += pt.y;
-    }
-/*
+    cout << "Click on coil 1 center of workspace"<< endl;
+    Point coil1 = getClick("image",cv_ptr->image);
+    cout << "coil1: " << coil1 << endl;
+    drawCross(cv_ptr->image, coil1, 5);
+    waitKey(10);
 
     cout << "Click on coil 2 center of workspace"<< endl;
     Point coil2 = getClick("image",cv_ptr->image);
@@ -135,66 +121,36 @@ public:
     cout << "coil4: " << coil4 << endl;
     drawCross(cv_ptr->image, coil4, 5);
     waitKey(10);
- */   
-
-    double d = 115.0/2;  // half distance between coils
-    double rectd = 75.2; //inner distance between rect corners
-
-    double coilavgx = (xtotal)/numcorners;
-    double coilavgy = (ytotal)/numcorners;
-    Point centerpt;
-    centerpt.x = coilavgx;
-    centerpt.y = coilavgy;
-    drawCross(cv_ptr->image, centerpt, 3);
-
-    //double pix2m = (dist13 + dist24)/(2*2*d)
-    // compute position in pixels of coils:
-
-    double distpt12 = distcalc(rectcorners[1],rectcorners[2]);
-    double distpt34 = distcalc(rectcorners[3],rectcorners[4]);
-    double distpt56 = distcalc(rectcorners[5],rectcorners[6]);
-    double distpt70 = distcalc(rectcorners[7],rectcorners[0]);
-    //cout << "pt1: " << rectcorners[1] << " pt2:" << rectcorners[2] << "dist: " << dist12 << endl;
     
-    double dist13 = (distpt12 + distpt56)/2;
-    double dist24 = (distpt70 + distpt34)/2;
 
-    double pix2m = (dist13 + dist24)/(2*rectd);
+    double d = 115/2;  // half distance between coils
 
-       
-    
+    double coilavgx = (coil1.x + coil2.x + coil3.x + coil4.x)/4;
+    double coilavgy = (coil1.y + coil2.y + coil3.y + coil4.y)/4;
+    double dist13 = sqrt ( pow(coil1.x - coil3.x,2) + pow(coil1.y - coil3.y,2));
+    double dist24 = sqrt ( pow(coil2.x - coil4.x,2) + pow(coil2.y - coil4.y,2));
+    double pix2m = (dist13 + dist24)/(2*2*d);
+
     cout << "d(mm):" << d << endl;
-    
     bool  updateYaml = true;
-
     // Write Yaml file
     if(updateYaml){
       cout<< "Updating YAML" << endl;
 
       FileStorage fs("/home/denise/catkin_ws/src/plane_camera_magnet/calib/calplane.yml",FileStorage::WRITE);
-      /*fs << "coil1x" << coil1.x << "coil1y" << coil1.y;
+      fs << "coil1x" << coil1.x << "coil1y" << coil1.y;
       fs << "coil2x" << coil2.x << "coil2y" << coil2.y;
       fs << "coil3x" << coil3.x << "coil3y" << coil3.y;
-      fs << "coil4x" << coil4.x << "coil4y" << coil4.y;*/
-      //fs << "coilcenterx << centerpt.x << "coilcentery" << centerpt.y;
+      fs << "coil4x" << coil4.x << "coil4y" << coil4.y;
       fs << "coilavgx" << coilavgx << "coilavgy" << coilavgy;
+      fs << "dist13" << dist13;
+      fs << "dist24" << dist24;
       fs << "pix2m" << pix2m;
       fs << "d" << d ;
-      fs << "rectd" << rectd;
-      fs << "pt0x" << rectcorners[0].x << "pt0y" << rectcorners[0].y;
-      fs << "pt1x" << rectcorners[1].x << "pt1y" << rectcorners[1].y;
-      fs << "pt2x" << rectcorners[2].x << "pt2y" << rectcorners[2].y;
-      fs << "pt3x" << rectcorners[3].x << "pt3y" << rectcorners[3].y;
-      fs << "pt4x" << rectcorners[4].x << "pt4y" << rectcorners[4].y;
-      fs << "pt5x" << rectcorners[5].x << "pt5y" << rectcorners[5].y;
-      fs << "pt6x" << rectcorners[6].x << "pt6y" << rectcorners[6].y;
-      fs << "pt7x" << rectcorners[7].x << "pt7y" << rectcorners[7].y;
+
       fs.release();
-
       exit (EXIT_SUCCESS);
-
     }
-
     else{
       cout<< "Don't update YAML" << endl;
       
@@ -210,15 +166,9 @@ public:
     //cout<< "xright: "<< keypoints[2].pt.x << endl;
     // Output modified video stream
     image_pub_.publish(cv_ptr->toImageMsg());
+    
   }
-  double distcalc(Point pt1, Point pt2)
-{
-  double dist;
-  dist = sqrt ( pow(pt1.x - pt2.x,2) + pow(pt1.y - pt2.y,2));
-  return dist;
-}
 };
-
 
 int main(int argc, char** argv)
 {

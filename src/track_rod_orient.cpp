@@ -122,7 +122,6 @@ public:
 
   void imageCb(const sensor_msgs::ImageConstPtr& msg)
   {
-
     //initialize tf:
     static tf::TransformBroadcaster br;
     tf::Transform transform;
@@ -131,7 +130,6 @@ public:
     q.setRPY(0,0,0);
     transform.setRotation(q);
     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(),"world", "/camera_frame"));
-
     
     cv_bridge::CvImagePtr cv_ptr;
     try

@@ -10,6 +10,7 @@ import rospy
 #from camera_magnet.msg import xyReal
 from plane_camera_magnet.msg import roboclawCmd
 from std_msgs.msg import String
+from plane_camera_magnet.msg import xyFiltered
 
 # for roboclaw : 
 import serial
@@ -140,10 +141,23 @@ def readerrorstate(port):
 # end for roboclaw
 
 print "Roboclaw 4 Coil Inputs\r\n"
+
+xPose = 999
+yPose = 999
+laststate = -1
+
+def callback(data):
+    #rospy.loginfo("xyWorld is:[ %d , %d ]" % (data.xyWorldX[0], data.xyWorldY[0]))
+    global xPose, yPose
+    xPose = data.xyWorldX[0]
+    yPose = data.xyWorldY[0]
+
+
 def talker():
 	# publishing to roboclawcommand topic
     #pub = rospy.Publisher('roboclawcommand',roboclawCmd, queue_size = 10)
-    pub = rospy.Publisher('/roboclaw4input_pub/roboclawCmd', roboclawCmd, queue_size=10)
+    global laststate
+    pub = rospy.Publisher('/roboclaw4calib_pub/roboclawCmd', roboclawCmd, queue_size=10)
     #Get version string
     sendcommand(128,21,port13);
     rcv = port13.read(32)
@@ -154,62 +168,62 @@ def talker():
 
 
     #rospy.init_node('talker',anonymous=True)
-    rate = rospy.Rate(0.5) #Hz
+    rate = rospy.Rate(100) #Hz
     msg = roboclawCmd();
     i = 0;
+    cnt = 0;
     while not rospy.is_shutdown():
+        cnt=cnt+1
+        print "Count = ",cnt
+        print "Error State:",repr(readerrorstate(port13))
+        print "Temperature:",readtemperature(port13)/10.0
         m1cur, m2cur = readcurrents(port13);
         print "Current C1: ",m1cur/10.0," C3: ",m2cur/10.0
-        rawvalStr = raw_input("Enter duty cycle for all coils (+-512) numbers separated by space:")    
-        rawvalStr = rawvalStr or noStr
 
-        if rawvalStr == noStr:
-            SetM1DutyAccel(1500,0)
-            SetM2DutyAccel(1500,0)
-            SetM3DutyAccel(1500,0)
-            SetM4DutyAccel(1500,0)
-            print "Program ending..."
-            time.sleep(1)
-            break
-        else:
-            valStr = map(int,rawvalStr.split())
-            print valStr
-            SetM1DutyAccel(65535,valStr[0])
-            SetM2DutyAccel(65535,valStr[1])
-            SetM3DutyAccel(65535,valStr[2])
-            SetM4DutyAccel(65535,valStr[3])
+        val = 300
 
-            print ("Coil1: ", valStr[0])
-            print ("Coil2: ", valStr[1])
-            print ("Coil3: ", valStr[2])
-            print ("Coil4: ", valStr[3])
+        m1val = [val, 0, 0, 0]
+        m2val = [0, 0, 0, 0]
+        m3val = [0, val, 0, 0]
+        m4val = [0, 0, 0, 0]
 
-            time.sleep(1)
+	    # loop through length of m1val
+        if xPose < -20:
+            i = 1
+            pubmsg = True
+        if xPose > 20:
+            i = 0
+            pubmsg = True
+
+        if laststate != i:
+            SetM1DutyAccel(65535,m1val[i])
+            SetM2DutyAccel(65535,m2val[i])
+            SetM3DutyAccel(65535,m3val[i])
+            SetM4DutyAccel(65535,m4val[i])             
+            print ("Coil1: ", m1val[i])
+            print ("Coil2: ", m2val[i])
+            print ("Coil3: ", m3val[i])
+            print ("Coil4: ", m4val[i])    
+            msg.m1 = m1val[i];
+            msg.m2 = m2val[i];
+            msg.m3 = m3val[i];
+            msg.m4 = m4val[i];
+            msg.header.stamp =  rospy.Time.now();
+            pub.publish(msg);
+            laststate = i
+            print "==============="
+        #time.sleep(.1)
+        print ("X: ", xPose)
+        
 
 
-        #print('[m1val m2val]: {0:.3f}, {1:.3f}'.format(m1val,m2val))
 
-        msg.m1 = valStr[0];
-        msg.m2 = valStr[1];
-        msg.m3 = valStr[2];
-        msg.m4 = valStr[3];
-        msg.header.stamp =  rospy.Time.now();
-        #msg.xdes = -1;
-        #msg.ydes = -1;
-
-        #SetM1Speed(m1val)
-        #SetM2Speed(m2val)
-#        65535 or 1500 accel
-
-        #SetM1DutyAccel(65535,m1val)
-        #SetM2DutyAccel(65535,m2val)
-
-        #rospy.loginfo(msg);
-        pub.publish(msg);
+        
 
         rate.sleep()
-        
-        i = i + 1;
+        #break 
+
+        #i = i + 1;
 def listener():
 
     # In ROS, nodes are uniquely named. If two nodes with the same
@@ -219,10 +233,9 @@ def listener():
     # run simultaneously.
     
     
-    rospy.init_node('controller', anonymous=True)
+    rospy.init_node('roboclaw4calib', anonymous=True)
 
-
-    #rospy.Subscriber("/magnet_track/xyReal", xyReal, callback)
+    rospy.Subscriber("/filterpose/xyFiltered", xyFiltered, callback)
 
     # define timer that updates every x:
     

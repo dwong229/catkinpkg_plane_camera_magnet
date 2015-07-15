@@ -1,0 +1,15 @@
+%YAML:1.0
+coil1x: 150
+coil1y: 89
+coil2x: 168
+coil2y: 72
+coil3x: 504
+coil3y: 61
+coil4x: 522
+coil4y: 80
+coilavgx: 336.
+coilavgy: 75.
+dist13: 3.5510561809129405e+02
+dist24: 3.5409038394172751e+02
+pix2m: 3.1105087808465859e+00
+d: 57.
