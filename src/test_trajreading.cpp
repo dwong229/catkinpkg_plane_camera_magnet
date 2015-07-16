@@ -12,6 +12,7 @@
 #include <trajectory.h>
 #include <iostream>
 #include <plane_camera_magnet/PositionCommand.h>
+#include <plane_camera_magnet/roboclawCmd.h>
 
 using namespace std;
 
@@ -71,7 +72,6 @@ int main(int argc, char **argv)
 
         // compute currents to send to roboclaw using Newton Raphson
         // *** NEED TO FINISH ***/
-
 
         roboclawCmdDesired.header.stamp = ros::Time::now();
         roboclawCmdDesired.m1 = 1;

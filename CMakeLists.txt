@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 find_package(OpenCV REQUIRED)
 find_package(flycapture)
+find_package(Boost REQUIRED COMPONENTS thread)
 find_package(Eigen REQUIRED)
 include_directories(${Eigen_INCLUDE_DIRS})
 
@@ -135,6 +136,12 @@ target_link_libraries(check_cal_plane_coils
 
 add_executable(test_trajreading src/test_trajreading.cpp)
 target_link_libraries(test_trajreading
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(boostsandbox src/boostsandbox.cpp)
+target_link_libraries(boostsandbox
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
