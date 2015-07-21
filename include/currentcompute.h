@@ -1,0 +1,19 @@
+#include <Eigen/Dense>
+
+using Eigen::MatrixXd;
+
+using namespace Eigen;
+using namespace std;
+
+// define constants
+const double pi = 3.1415926535897;
+const double mu0 = 4*pi*pow(10,-7);
+
+// functiosn to help compute Matrices D,B,M:
+
+extern Eigen::MatrixXd Mx(double,double,double,double);
+extern Eigen::MatrixXd My(double,double,double,double);
+extern Eigen::MatrixXd computeBmat(double, double, double, double);
+extern Eigen::MatrixXd Dy(double, double, double, double);
+extern Eigen::MatrixXd Dx(double, double, double, double);
+

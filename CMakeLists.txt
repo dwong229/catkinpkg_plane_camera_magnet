@@ -75,8 +75,9 @@ include_directories(
    src/hw4_helpers.cpp
    src/filter.cpp
    src/trajectory.cpp
+   src/currentcompute.cpp
  )
-target_link_libraries(plane_camera_magnet ${OpenCV_LIBS})
+target_link_libraries(plane_camera_magnet ${OpenCV_LIBS} ${catkin_LIBRARIES})
 ## Declare a cpp executable
 # add_executable(plane_camera_magnet_node src/plane_camera_magnet_node.cpp)
 
@@ -109,6 +110,7 @@ target_link_libraries(visualization_pixels
 add_executable(eigensandbox src/eigensandbox.cpp)
 target_link_libraries(eigensandbox
   ${catkin_LIBRARIES}
+  plane_camera_magnet
 )
 
 add_executable(filterpose src/filterpose.cpp)
@@ -145,3 +147,10 @@ target_link_libraries(boostsandbox
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(test_currentcompute src/test_currentcompute.cpp)
+target_link_libraries(test_currentcompute
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+

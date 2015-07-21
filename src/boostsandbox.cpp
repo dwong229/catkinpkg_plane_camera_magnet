@@ -46,8 +46,6 @@ struct Functor
 struct toy_functor : Functor<double>
 {
     toy_functor(void) : Functor<double>(2,2) {}
-    static const double m_x[2];
-    static const double m_y[2];
     int operator()(const VectorXd &b, VectorXd &fvec)
     {
         assert(b.size()==2);
@@ -55,9 +53,23 @@ struct toy_functor : Functor<double>
         //for(int i=0; i<14; i++) {
          //   fvec[i] = b[0]*(1.-exp(-b[1]*m_x[i])) - m_y[i] ;
         //}
-        fvec[0] = b[0]*b[0] + 5*b[0]*b[1] + 4*b[1]*b[1] -5.0;
-        fvec[1] = 4*b[0]*b[0] - 2*b[0]*b[1] + 4*b[1]*b[1] -3.0;
-        cout << "operator: " << fvec[0] << ", " << fvec[1] << endl;
+        // vector:
+        //fvec[0] = b[0]*b[0] + 5*b[0]*b[1] + 4*b[1]*b[1] -5.0;
+        //fvec[1] = 4*b[0]*b[0] - 2*b[0]*b[1] + 4*b[1]*b[1] -3.0;
+
+        // matrix
+        MatrixXd m(2,2);
+        MatrixXd n(2,2);
+        m << 1,2,
+             3,4;
+        n << 4,-1,
+             -1,4;
+
+        fvec[0] = b.transpose() * m * b - 5.0;
+        fvec[1] = b.transpose() * n * b - 3.0;
+
+        //cout << "operator: " << fvec[0] << ", " << fvec[1] << endl;
+        cout << "operator: " << fvec[0] << endl;
         cout << "b: " << b[0] << ", " << b[1] << endl;
         return 0;
     }
@@ -92,6 +104,7 @@ int main(void)
    info = lm.minimize(x);
 
    cout << "soln: " << x[0] << ", " << x[1] << endl;
+   cout << "info: " << info << endl;
    return 0;
 }
 
