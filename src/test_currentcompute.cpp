@@ -1,3 +1,4 @@
+#include <ros/ros.h>
 #include <iostream>
 #include <stdio.h>
 #include <cstdlib>
@@ -11,19 +12,19 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 #include "currentcompute.h"
 
-class Coil{
-public:
+struct Coil{
   double R;
   double d;
 };
 
-class Magnet{
-public:
+struct Magnet{
   double x;
   double y;
   double Fx;
   double Fy;
   double gamma;
+  MatrixXd Mxmat;
+  MatrixXd Mymat;
 };
 
 //Generic functor
@@ -52,31 +53,29 @@ struct Functor
 };
 
 
-struct toy_functor : Functor<double>
+struct toy_functor : Functor<double> //inheritence
 {
-    toy_functor(void) : Functor<double>(6,6) {}
+    toy_functor(Coil coil, Magnet magnet) : Functor<double>(6,6) {
+        d =coil.d;
+        R = coil.R;
+        x = magnet.x;
+        y = magnet.y;
+        Fx = magnet.Fx;
+        Fy = magnet.Fy; 
+        gamma = magnet.gamma;
+        Mxmat = magnet.Mxmat;
+        Mymat = magnet.Mymat;
+      }
+      double d, R, x, y, Fx, Fy, gamma;
+      MatrixXd Mxmat, Mymat; 
+
     int operator()(const VectorXd &b, VectorXd &fvec)
     {
         assert(b.size()==6);
         assert(fvec.size()==6);
-        
-        // unpack variables:
-        double d = 57.5;
-        double R = 8900;
-        double x = 10.0;
-        double y = 0.0;
-        double Fx = 0.0283;
-        double Fy = 0.0283;
-        double gamma = 6500;
 
-        MatrixXd Mxmat(4,4);
-        MatrixXd Mymat(4,4);
-        // compute m matrix:
-        Mxmat = Mx(x,y,R,d);
-        Mymat = My(x,y,R,d);
-
-        cout << "Mxmat = \n" << Mxmat << endl;
-        cout << "Mymat = \n" << Mymat << endl;
+        //cout << "Mxmat = \n" << Mxmat << endl;
+        //cout << "Mymat = \n" << Mymat << endl;
 
         VectorXd c; // current components
         VectorXd lambda;
@@ -93,8 +92,8 @@ struct toy_functor : Functor<double>
         fvec[4] = c[2] + gamma * lambda[0] * Mxmat.row(2)*c + gamma * lambda[1] * Mymat.row(2)*c;
         fvec[5] = c[3] + gamma * lambda[0] * Mxmat.row(3)*c + gamma * lambda[1] * Mymat.row(3)*c;
         
-        cout << "operator: " << fvec.transpose() << endl;
-        cout << "b: " << b.transpose() << endl;
+        //cout << "operator: " << fvec.transpose() << endl;
+        //cout << "b: " << b.transpose() << endl;
         return 0;
     }
     int df(const VectorXd &b, MatrixXd &fjac)
@@ -102,29 +101,13 @@ struct toy_functor : Functor<double>
         assert(b.size()==6);
         assert(fjac.rows()==6);
         assert(fjac.cols()==6);
-        //fjac(equation#, derivative wrt b[i])
-        /////////////////////////////////////////////
-        double d = 57.5;
-        double R = 8900;
-        double x = 10.0;
-        double y = 10.0;
-        double Fx = 0.0283;
-        double Fy = 0.0283;
-        double gamma = 6500;
-        /////////////////////////////////////////////
-
-
-        MatrixXd Mxmat(4,4);
-        MatrixXd Mymat(4,4);
-
-        Mxmat = Mx(x,y,R,d);
-        Mymat = My(x,y,R,d);
 
         VectorXd c; // current components
         VectorXd lambda;
         c = b.head(4);
         lambda = b.tail(2);
 
+        //fjac(equation#, derivative wrt b[i])
         // Force equation derivatives 
         for(int i=0; i<4; i++){
             fjac(0,i) = Mxmat.col(i).transpose() * c; 
@@ -162,37 +145,51 @@ struct toy_functor : Functor<double>
     }
 };
 
-int main(void)
+int main(int argc, char **argv)
 {
+   //ros::init(argc, argv ,"current");
+   //ros::start();
    const int n =6; // 4I , 2 lambda
    int info;
    VectorXd b(n);
    //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
    b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
    //b << .4,23,-16,-5.0,-500,-30000;
-   toy_functor functor;
-   //LevenbergMarquardt<toy_functor> lm(functor);
-   //info = lm.minimize(b);
-   HybridNonLinearSolver<toy_functor> solver(functor);
-   info = solver.solve(b);
+   
+   Magnet magnet1;
+   Coil coil;
+   coil.d = 57.5;
+   coil.R = 8900;
+   magnet1.x = 10.0;
+   magnet1.y = 0.0;
+   magnet1.Fx = 0.0283;
+   magnet1.Fy = 0.0283;
+   magnet1.gamma = 6500;
+   magnet1.Mxmat = Mx(magnet1.x,magnet1.y,coil.R,coil.d);
+   magnet1.Mymat = My(magnet1.x,magnet1.y,coil.R,coil.d);
+
+   //ros::Time begin = ros::Time::now(); //begin time
+
+   toy_functor functor(coil, magnet1); // functor( ) add arguments here.
+   LevenbergMarquardt<toy_functor> lm(functor);
+   info = lm.minimize(b);
+   //HybridNonLinearSolver<toy_functor> solver(functor);
+   //info = solver.solve(b);
    //info = solver.hybrd1(b);
    
   // check return value
    cout << "info: " << info << endl;
-   ////////////////////////////////////////////
-   double d = 57.5;
-   double R = 8900;
-   double x = 10.0;
-   double y = 0.0;
-   double Fx = 0.0283;
-   double Fy = .0283;
-   double gamma = 6500;
-   ///////////////////////////////////////////////
+
    //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
    VectorXd current(4);
    VectorXd c = b.head(4);
-   MatrixXd Bmat = computeBmat(x,y,R,d);
+   MatrixXd Bmat = computeBmat(magnet1.x,magnet1.y,coil.R,coil.d);
    current = c * pow(c.transpose()*Bmat.transpose()*Bmat*c,0.5);
    cout << "current: \n " << current << endl;
+
+   /* //timing
+   ros::Time endtime = ros::Time::now();
+   double dt = (endtime - begin).toSec(); 
+   //cout << "Time to compute: " << dt << "secs" << endl; //timing */
    return 0;
 }
