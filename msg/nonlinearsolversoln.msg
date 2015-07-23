@@ -1,0 +1,13 @@
+# Current command sent to roboclaw with timestamp - plane
+
+Header header
+float64[] xactual
+float64[] dx
+float64[] Fdes
+int8 info
+float64[] current
+float64[] solnvec
+float64[] error
+ 
+
+

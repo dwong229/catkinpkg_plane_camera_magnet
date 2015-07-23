@@ -28,8 +28,8 @@ except ImportError:
 
 checksum = 0
 
-port13 = serial.Serial("/dev/ttyUSB0", baudrate=38400, timeout=0.1)
-port24 = serial.Serial("/dev/ttyUSB1", baudrate=38400, timeout=0.1)
+port13 = serial.Serial("/dev/roboclaw0", baudrate=38400, timeout=0.1)
+port24 = serial.Serial("/dev/roboclaw1", baudrate=38400, timeout=0.1)
 noStr = "nonum"
 
 # Define global values

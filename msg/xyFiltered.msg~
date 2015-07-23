@@ -7,5 +7,7 @@ float64[] xyAngledeg
 float64[] xyAnglerad
 float64[] xyWorldX
 float64[] xyWorldY
+float64[] xyWorldXdot
+float64[] xyWorldYdot
 uint8 actrobot
 int8[] sortidx

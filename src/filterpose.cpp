@@ -142,7 +142,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     // vector<double> xyPixSizeraw;
     // vector<double> xyPixAngdegraw;
 
-    cout << "distmat" << endl;
+    //cout << "distmat" << endl;
     for( int r = 0; r < actrobot; r++)
         { for( int c = 0; c<numdetections; c ++)
             {
@@ -157,14 +157,15 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
             
             // populate value of idx of actrobot that is most likely corresponding to actrobot
             indexofSmallestElement(distmat[r],numdetections,minidx[r],minval[r]);
-            cout << minidx[r] << endl;
+            //cout << minidx[r] << endl;
         }
 
+    /*
     cout << "==minidx==" << endl;
     cout << minidx[0] << "," << minidx[1] << endl;
     cout << minval[0] << "," << minval[1] << endl;
     cout << "==minidx==" << endl;
-    
+    */
     // check for same mapping if 2 detections and values are the same
     if (minidx[0] == minidx[1] && numdetections == 2)
         {
@@ -246,12 +247,12 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     for (int i = 0; i<actrobot; i++)
     {
         // 2. Check angle and update
-        cout << "update" << endl;
+        //cout << "update" << endl;
         // 3. Update last pose
         lastposex.at(i) = xyPixXraw[i];
         lastposey.at(i) = xyPixYraw[i];
         lastposeang.at(i) = xyPixAngdegraw[i];
-        cout << "lastpose" << endl;
+        //cout << "lastpose" << endl;
         // 4. Convert to xySorted coords
         xyWorldX.at(i) = (xyPixXraw[i] - centerpixx)/pix2m;
         xyWorldY.at(i) = (-xyPixYraw[i] + centerpixy)/pix2m;
@@ -266,7 +267,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     // export xyworldX, xyworldY, xyWorldRad, numdetections idx.      
     
 
-    cout << "SortOrder:" << minidx[0] << ',' << minidx[1] << endl;
+    //cout << "SortOrder:" << minidx[0] << ',' << minidx[1] << endl;
     
 
     // ********* Filter position *******************

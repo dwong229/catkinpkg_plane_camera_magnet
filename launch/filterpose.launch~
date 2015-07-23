@@ -9,6 +9,5 @@
         pkg="plane_camera_magnet"
         type="kf_pose"
         output="screen">
-        <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calplane.yml"/>
     </node>
 </launch>

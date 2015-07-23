@@ -1,24 +1,16 @@
-#  Controller that takes in ROS msg xyReal.
-#  Given desired positions along the straw, keep magnet at that position
-
-#  =========== TO ADD =================
-# load csv of x, xdot, xdotdot values for a trajectory
-
-
 #!/usr/bin/env python
 import rospy
 #from camera_magnet.msg import xyReal
 from plane_camera_magnet.msg import roboclawCmd
 from std_msgs.msg import String
-from plane_camera_magnet.msg import xyFiltered
 
 # for roboclaw : 
 import serial
 import struct
 import time
 import math
-import numpy
 import csv
+import numpy as np
 
 try:
     import numpy
@@ -30,6 +22,8 @@ checksum = 0
 port13 = serial.Serial("/dev/roboclaw0", baudrate=38400, timeout=0.1)
 port24 = serial.Serial("/dev/roboclaw1", baudrate=38400, timeout=0.1)
 noStr = "nonum"
+
+#  Controller that takes in ROS msg roboclawCmdDesired.
 
 # Define global values
 PI = 3.14159265358979
@@ -141,23 +135,95 @@ def readerrorstate(port):
 # end for roboclaw
 
 print "Roboclaw 4 Coil Inputs\r\n"
-
-xPose = 999
-yPose = 999
-laststate = -1
-
-def callback(data):
-    #rospy.loginfo("xyWorld is:[ %d , %d ]" % (data.xyWorldX[0], data.xyWorldY[0]))
-    global xPose, yPose
-    xPose = data.xyWorldX[0]
-    yPose = data.xyWorldY[0]
-
-
-def talker():
+def talker(mval):
 	# publishing to roboclawcommand topic
     #pub = rospy.Publisher('roboclawcommand',roboclawCmd, queue_size = 10)
-    global laststate
-    pub = rospy.Publisher('/roboclaw4calib_pub/roboclawCmd', roboclawCmd, queue_size=10)
+
+    msg = roboclawCmd();
+          
+    msg.m1 = mval[0];
+    msg.m2 = mval[1];
+    msg.m3 = mval[2];
+    msg.m4 = mval[3];
+    msg.header.stamp =  rospy.Time.now();
+    pub.publish(msg);
+    print "==============="
+        
+    
+def callback(desiredcmd):
+    # unpack msg data
+    mval = np.array([desiredcmd.m1, desiredcmd.m2, desiredcmd.m3, desiredcmd.m4])
+    rate = rospy.Rate(10) #Hz
+
+    maxval = 512
+
+    # bound value of pwm assignment
+    # sign of pwm
+    pwmsign = np.sign(mval)
+
+    # values greater than 512 limit
+    pwmlimit = np.absolute(mval) > maxval
+
+    # values below 512
+    pwmsave = np.absolute(mval)<=maxval
+
+    #pwnnew=pwmnew.astype(int)
+    mval = mval*pwmsave + maxval*pwmsign*pwmlimit
+
+    # assign values
+    SetM1DutyAccel(65535,mval[0])
+    SetM2DutyAccel(65535,mval[1])
+    SetM3DutyAccel(65535,mval[2])
+    SetM4DutyAccel(65535,mval[3])
+    
+    print "Error State:",repr(readerrorstate(port13))
+    print "Temperature:",readtemperature(port13)/10.0
+    m1cur, m2cur = readcurrents(port13);
+    print "Current C1: ",m1cur/10.0," C3: ",m2cur/10.0
+    print ("Coil1: ", mval[0])
+    print ("Coil2: ", mval[1])
+    print ("Coil3: ", mval[2])
+    print ("Coil4: ", mval[3])    
+    
+    try:
+        talker(mval)
+    except rospy.ROSInterruptException:
+        SetM1DutyAccel(1500,0)
+        SetM2DutyAccel(1500,0)
+        SetM3DutyAccel(1500,0)
+        SetM4DutyAccel(1500,0)
+        pass
+    rate.sleep()
+
+    
+
+
+def listener():
+
+    # In ROS, nodes are uniquely named. If two nodes with the same
+    # node are launched, the previous one is kicked off. The
+    # anonymous=True flag means that rospy will choose a unique
+    # name for our 'listener' node so that multiple listeners can
+    # run simultaneously.
+    rospy.init_node('controller', anonymous=True)
+
+
+    rospy.Subscriber("/test_trajreading/roboclawcmddesired", roboclawCmd, callback)
+
+    # spin() simply keeps python from exiting until this node is stopped
+    
+    rospy.spin()
+
+
+
+if __name__ == '__main__':
+   
+    SetM1DutyAccel(1500,0)
+    SetM2DutyAccel(1500,0)
+    SetM3DutyAccel(1500,0)
+    SetM4DutyAccel(1500,0)
+    #time.sleep(5)
+
     #Get version string
     sendcommand(128,21,port13);
     rcv = port13.read(32)
@@ -166,100 +232,5 @@ def talker():
     rcv2 = port24.read(32)
     print repr(rcv2)
 
-
-    #rospy.init_node('talker',anonymous=True)
-    rate = rospy.Rate(100) #Hz
-    msg = roboclawCmd();
-    i = 0;
-    cnt = 0;
-    while not rospy.is_shutdown():
-        cnt=cnt+1
-        print "Count = ",cnt
-        print "Error State:",repr(readerrorstate(port13))
-        print "Temperature:",readtemperature(port13)/10.0
-        m1cur, m2cur = readcurrents(port13);
-        print "Current C1: ",m1cur/10.0," C3: ",m2cur/10.0
-
-        val = 300
-
-        m1val = [val, 0, 0, 0]
-        m2val = [0, 0, 0, 0]
-        m3val = [0, val, 0, 0]
-        m4val = [0, 0, 0, 0]
-
-	    # loop through length of m1val
-        if xPose < -20:
-            i = 1
-            pubmsg = True
-        if xPose > 20:
-            i = 0
-            pubmsg = True
-
-        if laststate != i:
-            SetM1DutyAccel(65535,m1val[i])
-            SetM2DutyAccel(65535,m2val[i])
-            SetM3DutyAccel(65535,m3val[i])
-            SetM4DutyAccel(65535,m4val[i])             
-            print ("Coil1: ", m1val[i])
-            print ("Coil2: ", m2val[i])
-            print ("Coil3: ", m3val[i])
-            print ("Coil4: ", m4val[i])    
-            msg.m1 = m1val[i];
-            msg.m2 = m2val[i];
-            msg.m3 = m3val[i];
-            msg.m4 = m4val[i];
-            msg.header.stamp =  rospy.Time.now();
-            pub.publish(msg);
-            laststate = i
-            print "==============="
-        #time.sleep(.1)
-        print ("X: ", xPose)
-        
-
-
-
-        
-
-        rate.sleep()
-        #break 
-
-        #i = i + 1;
-def listener():
-
-    # In ROS, nodes are uniquely named. If two nodes with the same
-    # node are launched, the previous one is kicked off. The
-    # anonymous=True flag means that rospy will choose a unique
-    # name for our 'listener' node so that multiple listeners can
-    # run simultaneously.
-    
-    
-    rospy.init_node('roboclaw4calib', anonymous=True)
-
-    rospy.Subscriber("/filterpose/xyFiltered", xyFiltered, callback)
-
-    # define timer that updates every x:
-    
-    try: 
-    	talker()
-    	#motorupdate()
-    except rospy.ROSInterruptException:
-      SetM1DutyAccel(1500,0)
-      SetM2DutyAccel(1500,0)
-      SetM3DutyAccel(1500,0)
-      SetM4DutyAccel(1500,0)
-      pass
-
-	
-    # spin() simply keeps python from exiting until this node is stopped
-    rospy.spin()
-
-
-if __name__ == '__main__':
-   
-   SetM1DutyAccel(1500,0)
-   SetM2DutyAccel(1500,0)
-   SetM3DutyAccel(1500,0)
-   SetM4DutyAccel(1500,0)
-   #time.sleep(5)
-
-   listener()
+    pub = rospy.Publisher('roboclawcommand',roboclawCmd, queue_size = 10)
+    listener()

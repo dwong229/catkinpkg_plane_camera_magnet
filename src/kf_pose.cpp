@@ -8,14 +8,22 @@
 #include <Eigen/Geometry>
 #include <visualization_msgs/Marker.h> //for rvis visualization
 #include <math.h>
+#include <opencv2/opencv.hpp>
 
 using namespace std;
 
 static ros::Publisher kfmarker_pub;
 static ros::Publisher rawmarker_pub;
+static ros::Publisher kfxy_pub;
 static KalmanFilter kf;
-//static plane_camera_magnet::xyFiltered odom_msg; //fix later for usable output
+
+static plane_camera_magnet::xyFiltered magnetactual_msg;
 static visualization_msgs::Marker kfpoints, kfline_strip, kfline_list, rawpoints;
+
+// calibration file to convert to world
+double pix2m;
+double centerpixx;
+double centerpixy;
 
 static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
 {
@@ -139,10 +147,41 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     kfline_list.points[0] = p;
     kfline_list.points[1] = v;
 
+    //convert pix into world coords:
+    // 4. Convert to xySorted coords
+    vector<double> xyWorldX (data.actrobot,0.0);
+    vector<double> xyWorldY (data.actrobot,0.0);
+    vector<double> xyWorldXdot (data.actrobot,0.0);
+    vector<double> xyWorldYdot (data.actrobot,0.0);
     
+    xyWorldX.at(0) = (state(0) - centerpixx)/pix2m;
+    xyWorldY.at(0) = (-state(1) + centerpixy)/pix2m;
+    xyWorldXdot.at(0) = state(2)/pix2m;
+    xyWorldYdot.at(0) = state(3)/pix2m;
+
+        
+    //pupulate /kf_pose/magnetactual 
+    magnetactual_msg.header.stamp = data.header.stamp;
+    magnetactual_msg.header.frame_id = data.header.frame_id;
+    magnetactual_msg.xyPixX.assign(1,state(0));
+    magnetactual_msg.xyPixY.assign(1,state(1));
+    magnetactual_msg.xySize = data.xySize;
+    magnetactual_msg.xyAngledeg.assign(1,0);
+    magnetactual_msg.xyAnglerad.assign(1,0);
+    magnetactual_msg.actrobot = data.actrobot;
+    magnetactual_msg.sortidx = data.sortidx;
+
+    magnetactual_msg.xyWorldX = xyWorldX;
+    magnetactual_msg.xyWorldY = xyWorldY;
+    magnetactual_msg.xyWorldXdot = xyWorldXdot;
+    magnetactual_msg.xyWorldYdot = xyWorldYdot;
+
+
+    //PUBLISH
     kfmarker_pub.publish(kfpoints);
     kfmarker_pub.publish(kfline_list);
     rawmarker_pub.publish(rawpoints);
+    kfxy_pub.publish(magnetactual_msg);
     
 }
 
@@ -151,6 +190,15 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "kf_pose");
 
     ros::NodeHandle n("~");
+
+
+    std::string cal_file;    
+    n.param("cal_file", cal_file, std::string("calplane.yml"));
+    ROS_INFO_STREAM("cal file " << cal_file);
+    cv::FileStorage fscal(cal_file.c_str(), cv::FileStorage::READ);
+    centerpixx = (double)fscal["coilavgx"];
+    centerpixy = (double)fscal["coilavgy"];
+    pix2m = (double)fscal["pix2m"];
 
     double max_accel;
     //set a max value
@@ -183,6 +231,7 @@ int main(int argc, char **argv)
     kfmarker_pub = n.advertise<visualization_msgs::Marker>("visualization_kfmarker", 10);
     rawmarker_pub = n.advertise<visualization_msgs::Marker>("visualization_rawmarker", 10);
 
+    kfxy_pub = n.advertise<plane_camera_magnet::xyFiltered>("magnetactual",1);
   
     ros::spin();
   

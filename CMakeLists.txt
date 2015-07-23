@@ -30,6 +30,7 @@ add_message_files(
    roboclawCmd.msg
    xyFiltered.msg
    PositionCommand.msg
+   nonlinearsolversoln.msg
  )
 
 ## Generate added messages and services with any dependencies listed here
@@ -150,6 +151,12 @@ target_link_libraries(boostsandbox
 
 add_executable(test_currentcompute src/test_currentcompute.cpp)
 target_link_libraries(test_currentcompute
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(closedloopfbpoint src/closedloopfbpoint.cpp)
+target_link_libraries(closedloopfbpoint
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )

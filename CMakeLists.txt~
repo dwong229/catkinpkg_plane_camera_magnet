@@ -148,8 +148,14 @@ target_link_libraries(boostsandbox
   plane_camera_magnet
 )
 
-add_executable(test_currentcompute_class src/test_currentcompute_class.cpp)
-target_link_libraries(test_currentcompute_class
+add_executable(test_currentcompute src/test_currentcompute.cpp)
+target_link_libraries(test_currentcompute
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(closedloopfbpoint src/closedloopfbpoint.cpp)
+target_link_libraries(closedloopfbpoint
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
