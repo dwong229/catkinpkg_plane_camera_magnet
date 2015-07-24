@@ -6,6 +6,7 @@
 #include <plane_camera_magnet/nonlinearsolversoln.h>
 #include "currentcompute.h"
 #include "opencv2/opencv.hpp"
+#include <visualization_msgs/Marker.h> //for rvis visualization
 
 using namespace std;
 
@@ -13,6 +14,9 @@ using namespace std;
 
 plane_camera_magnet::PositionCommand actual;
 int numrobot;
+bool newmsg;
+static visualization_msgs::Marker kfpoints, kfline_strip, kfline_list, rawpoints;
+
 void xyFilteredcallback(const plane_camera_magnet::xyFiltered& data)
 {
   
@@ -25,6 +29,7 @@ void xyFilteredcallback(const plane_camera_magnet::xyFiltered& data)
         actual.position.y = double(data.xyWorldY.at(0));
         actual.velocity.x = double(data.xyWorldXdot.at(0));
         actual.velocity.y = double(data.xyWorldYdot.at(0));
+        newmsg = true;
     }
     
 
@@ -73,14 +78,16 @@ int main(int argc, char **argv)
     int info;
     VectorXd b(n);
     //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
-    b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
+    //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
+    b << 1., 2., 600., 4., 10700, 0.; // F = [0.0283, 0]
+    ros::Rate loop_rate(100);
 
     
     //cout << size.traj() << endl;
     int count = 0;
+
     while(ros::ok())
     {
-       
         // take in position of robot
         actual.acceleration.x = 0;
         actual.acceleration.y = 0;
@@ -168,9 +175,14 @@ int main(int argc, char **argv)
             // if no solution, random start b.
             cout << "re-init b" << endl;
             b = VectorXd::Random(6)*1000; // F = [0.0283, 0]
+            // test for large coil 3:
+            //b[2] = 1000;
+            cout << "b: " << b << endl;
+
         }
 
         solversoln_pub.publish(solversoln_msg);
+        loop_rate.sleep();
         ros::spinOnce();
         ++count;
     }
@@ -178,3 +190,4 @@ int main(int argc, char **argv)
     return 0;
 
 }
+

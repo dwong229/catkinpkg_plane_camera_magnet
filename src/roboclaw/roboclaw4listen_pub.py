@@ -153,8 +153,15 @@ def talker(mval):
 def callback(desiredcmd):
     # unpack msg data
     mval = np.array([desiredcmd.m1, desiredcmd.m2, desiredcmd.m3, desiredcmd.m4])
-    rate = rospy.Rate(10) #Hz
+    print("Seq: ", desiredcmd.header.seq)
+    print ("Coil1: ", desiredcmd.m1)
+    print ("Coil2: ", desiredcmd.m2)
+    print ("Coil3: ", desiredcmd.m3)
+    print ("Coil4: ", desiredcmd.m4)    
+    
+    rate = rospy.Rate(15) #Hz
 
+    minval = 0
     maxval = 512
 
     # bound value of pwm assignment
@@ -168,7 +175,12 @@ def callback(desiredcmd):
     pwmsave = np.absolute(mval)<=maxval
 
     #pwnnew=pwmnew.astype(int)
-    mval = mval*pwmsave + maxval*pwmsign*pwmlimit
+    pwm = mval*pwmsave + maxval*pwmsign*pwmlimit
+
+    pwmlimit = np.absolute(pwm) < minval
+    pwmsave = np.absolute(pwm)>=minval
+
+    mval = pwm*pwmsave + 0*pwmsign*pwmlimit
 
     # assign values
     SetM1DutyAccel(65535,mval[0])
@@ -208,10 +220,11 @@ def listener():
     rospy.init_node('controller', anonymous=True)
 
 
-    rospy.Subscriber("/test_trajreading/roboclawcmddesired", roboclawCmd, callback)
+    #rospy.Subscriber("/test_trajreading/roboclawcmddesired", roboclawCmd, callback)
+    rospy.Subscriber("/closedloopfbpoint/roboclawcmddesired", roboclawCmd, callback, queue_size=1)
+    
 
     # spin() simply keeps python from exiting until this node is stopped
-    
     rospy.spin()
 
 
