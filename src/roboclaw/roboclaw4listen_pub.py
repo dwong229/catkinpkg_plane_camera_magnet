@@ -154,12 +154,12 @@ def callback(desiredcmd):
     # unpack msg data
     mval = np.array([desiredcmd.m1, desiredcmd.m2, desiredcmd.m3, desiredcmd.m4])
     print("Seq: ", desiredcmd.header.seq)
-    print ("Coil1: ", desiredcmd.m1)
-    print ("Coil2: ", desiredcmd.m2)
-    print ("Coil3: ", desiredcmd.m3)
-    print ("Coil4: ", desiredcmd.m4)    
+    #print ("Coil1: ", desiredcmd.m1)
+    #print ("Coil2: ", desiredcmd.m2)
+    #print ("Coil3: ", desiredcmd.m3)
+    #print ("Coil4: ", desiredcmd.m4)    
     
-    rate = rospy.Rate(15) #Hz
+    rate = rospy.Rate(60) #Hz
 
     minval = 0
     maxval = 512
@@ -188,14 +188,16 @@ def callback(desiredcmd):
     SetM3DutyAccel(65535,mval[2])
     SetM4DutyAccel(65535,mval[3])
     
-    print "Error State:",repr(readerrorstate(port13))
-    print "Temperature:",readtemperature(port13)/10.0
+    error13 = readerrorstate(port13)
+    error24 = readerrorstate(port24)
+    #print "Error State:",repr(readerrorstate(port13))
+    #print "Temperature:",readtemperature(port13)/10.0
     m1cur, m2cur = readcurrents(port13);
-    print "Current C1: ",m1cur/10.0," C3: ",m2cur/10.0
-    print ("Coil1: ", mval[0])
-    print ("Coil2: ", mval[1])
-    print ("Coil3: ", mval[2])
-    print ("Coil4: ", mval[3])    
+    #print "Current C1: ",m1cur/10.0," C3: ",m2cur/10.0
+    #print ("Coil1: ", mval[0])
+    #print ("Coil2: ", mval[1])
+    #print ("Coil3: ", mval[2])
+    #print ("Coil4: ", mval[3])    
     
     try:
         talker(mval)

@@ -49,6 +49,7 @@ int main(int argc, char **argv)
     double ygoal = (double)fscal["ygoal"];
     double kx = (double)fscal["kx"];
     double kv = (double)fscal["kv"];
+    double ki = (double)fscal["ki"];
 
     plane_camera_magnet::PositionCommand goal;
 
@@ -80,11 +81,15 @@ int main(int argc, char **argv)
     //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
     //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
     b << 1., 2., 600., 4., 10700, 0.; // F = [0.0283, 0]
-    ros::Rate loop_rate(100);
+    double freq = 100;
+    ros::Rate loop_rate(freq);
 
     
     //cout << size.traj() << endl;
     int count = 0;
+    double integrateerror[2];
+    integrateerror[0] = 0;
+    integrateerror[1] = 0;
 
     while(ros::ok())
     {
@@ -96,9 +101,14 @@ int main(int argc, char **argv)
         //double mass = 1.;
 
         // compute F desired
+        integrateerror[0] += (goal.position.x - actual.position.x)/freq;
+        integrateerror[1] += (goal.position.y - actual.position.y)/freq;
+        cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
+
         double Fdes[2];
-        Fdes[0] = goal.acceleration.x * mass + kx * (goal.position.x - actual.position.x) + kv * (goal.position.x - actual.velocity.x);
-        Fdes[1] = goal.acceleration.y * mass + kx * (goal.position.y - actual.position.y) + kv * (goal.position.y - actual.velocity.y);
+
+        Fdes[0] = goal.acceleration.x * mass + kx * (goal.position.x - actual.position.x) + kv * (goal.position.x - actual.velocity.x) + ki * integrateerror[0];
+        Fdes[1] = goal.acceleration.y * mass + kx * (goal.position.y - actual.position.y) + kv * (goal.position.y - actual.velocity.y) + ki * integrateerror[1];
 
         //cout << "F: " << Fdes[0] << ", " << Fdes[1] << endl;
 

@@ -17,11 +17,14 @@ class Trajectory
     int freq_;
     bool completed, loaded;
     double xoff, yoff;
+    int trajidx;
+    double dx; //how close you need to be to waypoint before you assign next waypoint.
 
   public:
     Trajectory();
     bool LoadTrajectory();
     void UpdateGoal(plane_camera_magnet::PositionCommand&);
+    void UpdateGoaldx(plane_camera_magnet::PositionCommand&, plane_camera_magnet::PositionCommand&);
 
     void set_start_time() {start_time_ = ros::Time::now(); completed = false;}
     void set_start_time(ros::Time time) {start_time_ = time; completed = false;}

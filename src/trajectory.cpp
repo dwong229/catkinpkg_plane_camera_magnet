@@ -5,12 +5,13 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <math.h>
 
 using namespace std;
 
 // Adapting trajectory.cpp from justinthomas https://github.com/justinthomas/hummingbird_demo/blob/master/src/trajectory.cpp
 
-Trajectory::Trajectory() : completed(false), loaded(false), xoff(0), yoff(0) {}
+Trajectory::Trajectory() : completed(false), loaded(false), xoff(0), yoff(0), trajidx(0), dx(0.5) {}
 
 void Trajectory::setOffsets(double x, double y) {
   xoff = x; yoff = y;
@@ -43,6 +44,54 @@ void Trajectory::UpdateGoal(plane_camera_magnet::PositionCommand &goal)
 
   goal.acceleration.x = traj_[i][0][2];
   goal.acceleration.y = traj_[i][1][2];
+  
+
+  // gains
+  /*
+  goal.kx[0] = traj_[i][4][0];
+  goal.kx[1] = traj_[i][4][1];
+  goal.kx[2] = traj_[i][4][2];
+  goal.kv[0] = traj_[i][4][3];
+  goal.kv[1] = traj_[i][4][4];
+  goal.kv[2] = traj_[i][4][5];
+  */
+}
+
+//update traj depending on where robot is.
+void Trajectory::UpdateGoaldx(plane_camera_magnet::PositionCommand &actual, plane_camera_magnet::PositionCommand &goal)
+{
+  //ros::Duration delta_time = ros::Time::now() - start_time_;
+  //double traj_time = delta_time.toSec();
+ 
+  //unsigned long i = traj_time * freq_;
+  
+  double distfromgoal = pow(pow(goal.position.x - actual.position.x,2) + pow(goal.position.y - actual.position.y,2),0.5);
+
+  if (distfromgoal < dx)
+  { 
+    trajidx++;
+  }
+
+  if (trajidx > traj_.size()-1)
+  {
+    trajidx = traj_.size()-1;
+
+    if (!completed)
+    {
+      ROS_INFO("Trajectory completed.");
+      completed = true;
+    }
+  }
+
+  //
+  goal.position.x = traj_[trajidx][0][0] + xoff;
+  goal.position.y = traj_[trajidx][1][0] + yoff;
+
+  goal.velocity.x = traj_[trajidx][0][1];
+  goal.velocity.y = traj_[trajidx][1][1];
+
+  goal.acceleration.x = traj_[trajidx][0][2];
+  goal.acceleration.y = traj_[trajidx][1][2];
   
 
   // gains

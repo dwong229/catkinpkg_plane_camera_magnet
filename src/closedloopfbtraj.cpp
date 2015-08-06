@@ -14,7 +14,6 @@ using namespace std;
 
 Trajectory traj;
 
-
 plane_camera_magnet::PositionCommand actual;
 int numrobot;
 static visualization_msgs::Marker goalvis, actualvis;
@@ -39,11 +38,12 @@ void xyFilteredcallback(const plane_camera_magnet::xyFiltered& data)
     actualvis.header.stamp = ros::Time::now();
     actualvis.ns = "closedloopfbtraj";
     actualvis.action = visualization_msgs::Marker::ADD;
-    actualvis.pose.orientation.x = 1.0;
-
+    // rotation of frame in quaternions
+    actualvis.pose.orientation.x = actualvis.pose.orientation.y = actualvis.pose.orientation.z =0.0;
+    actualvis.pose.orientation.w = 1.0;
     actualvis.type = visualization_msgs::Marker::POINTS;
 
-    actualvis.scale.x = goalvis.scale.y = 0.1;
+    actualvis.scale.x = actualvis.scale.y = 0.2;
 
     actualvis.color.g = 1.0f;
     actualvis.color.a = 1.0;
@@ -69,6 +69,8 @@ int main(int argc, char **argv)
     //double ygoal = (double)fscal["ygoal"];
     double kx = (double)fscal["kx"];
     double kv = (double)fscal["kv"];
+    double ki = (double)fscal["ki"];
+
 
     //trajectory setup:
     // The trajectory filename
@@ -93,7 +95,9 @@ int main(int argc, char **argv)
     goalvis.header.stamp = ros::Time::now();
     goalvis.ns = "closedloopfbtraj";
     goalvis.action = visualization_msgs::Marker::ADD;
-    goalvis.pose.orientation.x = 1.0;
+    // rotation of frame in quaternions
+    goalvis.pose.orientation.x = goalvis.pose.orientation.y = goalvis.pose.orientation.z = 0.0;
+    goalvis.pose.orientation.w  = 1.0;
 
     goalvis.type = visualization_msgs::Marker::POINTS;
 
@@ -127,7 +131,8 @@ int main(int argc, char **argv)
     //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
     //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
     b << 1., 2., 600., 4., 10700, 0.; // F = [0.0283, 0]
-    ros::Rate loop_rate(100);
+    double freq = 100;
+    ros::Rate loop_rate(freq);
 
     cout << "Press enter when ready to begin traj:" << endl;
     cin.ignore(1);
@@ -135,13 +140,17 @@ int main(int argc, char **argv)
     traj.set_start_time();
     //cout << size.traj() << endl;
 
+    double integrateerror[2];
+    integrateerror[0] = 0;
+    integrateerror[1] = 0;
 
     while(!traj.isCompleted())
     {
         // loop until end of traj
-        traj.UpdateGoal(goal);
+        //traj.UpdateGoal(goal);
+        traj.UpdateGoaldx(actual,goal);
 
-        cout << "X: " << goal.position.x << ", " << goal.position.y << ", " << goal.velocity.x << ", " << goal.velocity.y << endl;
+        //cout << "GOAL: X: " << goal.position.x << ", " << goal.position.y << ", " << goal.velocity.x << ", " << goal.velocity.y << endl;
         goalvis.points.resize(1);
         goalvis.points[0] = goal.position;    
         ros::spinOnce();
@@ -153,11 +162,20 @@ int main(int argc, char **argv)
         //double mass = 1.;
 
         // compute F desired
-        double Fdes[2];
-        Fdes[0] = goal.acceleration.x * mass + kx * (goal.position.x - actual.position.x) + kv * (goal.position.x - actual.velocity.x);
-        Fdes[1] = goal.acceleration.y * mass + kx * (goal.position.y - actual.position.y) + kv * (goal.position.y - actual.velocity.y);
+        integrateerror[0] += (goal.position.x - actual.position.x)/freq;
+        integrateerror[1] += (goal.position.y - actual.position.y)/freq;
+        cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
 
-        cout << "F: " << Fdes[0] << ", " << Fdes[1] << endl;
+
+        // compute F desired
+        double Fdes[2];
+        //Fdes[0] = goal.acceleration.x * mass + kx * (goal.position.x - actual.position.x) + kv * (goal.position.x - actual.velocity.x);
+        //Fdes[1] = goal.acceleration.y * mass + kx * (goal.position.y - actual.position.y) + kv * (goal.position.y - actual.velocity.y);
+        Fdes[0] = goal.acceleration.x * mass + kx * (goal.position.x - actual.position.x) + kv * (goal.position.x - actual.velocity.x) + ki * integrateerror[0];
+        Fdes[1] = goal.acceleration.y * mass + kx * (goal.position.y - actual.position.y) + kv * (goal.position.y - actual.velocity.y) + ki * integrateerror[1];
+
+
+        //cout << "F: " << Fdes[0] << ", " << Fdes[1] << endl;
 
         // compute currents to send to roboclaw using nonlinear solver.
         // update magnet variables:
@@ -172,7 +190,7 @@ int main(int argc, char **argv)
         CoilFunctor functor(coil, magnet1); // functor( ) add arguments here.
         LevenbergMarquardt<CoilFunctor> lm(functor);
         info = lm.minimize(b);   
-        cout << "info: " << info << endl; //LM error: 1: RelativeReductionTooSmall, 2:RelativeErrorTooSmall, 3:RelativeErrorAndReductionTooSmall
+        //cout << "info: " << info << endl; //LM error: 1: RelativeReductionTooSmall, 2:RelativeErrorTooSmall, 3:RelativeErrorAndReductionTooSmall
 
 // solversoln_msg: ///////////////////
         solversoln_msg.header.stamp = ros::Time::now();
