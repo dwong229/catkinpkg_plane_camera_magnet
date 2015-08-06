@@ -6,9 +6,23 @@ using Eigen::MatrixXd;
 using namespace Eigen;
 using namespace std;
 
+CoilFunctor2::CoilFunctor2(Coil coil, Magnet magnet) : Functor<double>(4,4) {
+        d = coil.d;
+        R = coil.R;
+        x[0] = magnet.x;
+        y[0] = magnet.y;
+        Fx[0] = magnet.Fx;
+        Fy[0] = magnet.Fy; 
+        gamma = magnet.gamma;
+        Mxmat1 = magnet.Mxmat1;
+        Mymat1 = magnet.Mymat1;
+        Mxmat2 = magnet.Mxmat2;
+        Mymat2 = magnet.Mymat2;
+    }
+
 //definitions:
 CoilFunctor::CoilFunctor(Coil coil, Magnet magnet) : Functor<double>(6,6) {
-        d =coil.d;
+        d = coil.d;
         R = coil.R;
         x = magnet.x;
         y = magnet.y;
@@ -20,7 +34,8 @@ CoilFunctor::CoilFunctor(Coil coil, Magnet magnet) : Functor<double>(6,6) {
       }
 
 int CoilFunctor::operator()(const VectorXd &b, VectorXd &fvec)
-    {
+    {   
+
         assert(b.size()==6);
         assert(fvec.size()==6);
 

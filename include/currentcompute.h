@@ -79,3 +79,13 @@ struct CoilFunctor : Functor<double>
     int df(const VectorXd&, MatrixXd&);
 
 };
+
+//struct CoilFunctor2 : CoilFunctor {
+struct CoilFunctor2 : Functor<double>
+{
+  CoilFunctor2(Coil c, Magnet m); //: CoilFunctor(c, m) {}
+
+  double d, R, gamma, Fx[], Fy[], x[], y[];
+  MatrixXd Mxmat1, Mymat1, Mxmat2, Mymat2;
+
+};

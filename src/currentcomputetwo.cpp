@@ -9,7 +9,7 @@ using namespace Eigen;
 using namespace std;
 
 //definitions:
-CoilFunctor::CoilFunctor(Coil coil, Magnet magnet) : Functor<double>(6,6) {
+CoilFunctor::CoilFunctor(Coil coil, Magnet magnet) : Functor<double> {
         d =coil.d;
         R = coil.R;
         x = magnet.x;
@@ -19,7 +19,7 @@ CoilFunctor::CoilFunctor(Coil coil, Magnet magnet) : Functor<double>(6,6) {
         gamma = magnet.gamma;
         Mxmat = magnet.Mxmat;
         Mymat = magnet.Mymat;
-      }
+    }
 
 int CoilFunctor::operator()(const VectorXd &b, VectorXd &fvec)
     {

@@ -29,6 +29,8 @@ int main(int argc, char **argv)
    //ros::Time begin = ros::Time::now(); //begin time
 
    CoilFunctor functor(coil, magnet1); // functor( ) add arguments here.
+   //CoilFunctor2 functor2(coil, magnet1);
+
    LevenbergMarquardt<CoilFunctor> lm(functor);
    info = lm.minimize(b);
    //HybridNonLinearSolver<CoilFunctor> solver(functor);
