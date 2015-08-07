@@ -9,21 +9,114 @@ using namespace std;
 CoilFunctor2::CoilFunctor2(Coil coil, Magnet magnet) : Functor<double>(4,4) {
         d = coil.d;
         R = coil.R;
-        x[0] = magnet.x;
-        y[0] = magnet.y;
-        Fx[0] = magnet.Fx;
-        Fy[0] = magnet.Fy; 
+        /*x[0] = magnet.x[0];
+        y[0] = magnet.y[0];
+        x[1] = magnet.x[1];
+        y[1] = magnet.y[1];
+        Fx[0] = magnet.Fx[0];
+        Fy[0] = magnet.Fy[0]; 
+        Fx[1] = magnet.Fx[1];
+        Fy[1] = magnet.Fy[1];
+        */
+        x = magnet.x;
+        y = magnet.y;
+        Fx = magnet.Fx;
+        Fy = magnet.Fy; 
+        x2 = magnet.x2;
+        y2 = magnet.y2;
+        Fx2 = magnet.Fx2;
+        Fy2 = magnet.Fy2; 
+        
         gamma = magnet.gamma;
-        Mxmat1 = magnet.Mxmat1;
-        Mymat1 = magnet.Mymat1;
+        Mxmat = magnet.Mxmat;
+        Mymat = magnet.Mymat;
         Mxmat2 = magnet.Mxmat2;
         Mymat2 = magnet.Mymat2;
+		Bmat = magnet.Bmat;
+		Bmat2 = magnet.Bmat2;        
+
     }
+
+int CoilFunctor2::operator()(const VectorXd &c, VectorXd &fvec)
+{
+	assert(c.size()==4);
+	assert(fvec.size()==4);
+    
+    // compute B'B
+    double BtB1 = pow(c.transpose() * Bmat.transpose() * Bmat * c,-0.5);
+    double BtB2 = pow(c.transpose() * Bmat2.transpose() * Bmat2 * c,-0.5);
+
+    // force constraints
+
+    fvec[0] = gamma * BtB1 * c.transpose() * Mxmat * c - Fx; // pow(c.transpose() * BtB1 * c, -0.5);// - Fx;
+    fvec[1] = gamma * BtB1 * c.transpose() * Mymat * c - Fy;
+    fvec[2] = gamma * BtB2 * c.transpose() * Mxmat2 * c - Fx2;
+    fvec[3] = gamma * BtB2 * c.transpose() * Mymat2 * c - Fy2;
+    
+    cout << "operator: " << fvec.transpose() << endl;
+    //cout << "c: " << c.transpose() << endl;
+    return 0;
+}
+
+int CoilFunctor2::df(const VectorXd &c, MatrixXd &fjac)
+{
+		// use numerical differentiation
+        assert(c.size()==4);
+        assert(fjac.rows()==4);
+        assert(fjac.cols()==4);
+
+		// 1/sqrt(c' B'B c )
+		double BtB1, BtB2;
+        //fjac(equation#, derivative wrt b[i])
+        // Force equation derivatives 
+        double di = .0001;
+        VectorXd ctemp;
+        for(int i=0; i<4; i++){
+        	ctemp = c;
+        	for(int lowhi = 1; lowhi < 3; lowhi++){
+        		// compute lower bound first:
+        		// ctemp = c[i] + di/2
+        		ctemp[i] = c[i] + di/2*pow(-1.0,lowhi);
+        		std::cout << "ctemp: " << ctemp.transpose() << endl;
+        		BtB1 = pow(ctemp.transpose() * Bmat.transpose() * Bmat * ctemp,-0.5);
+        		BtB2 = pow(ctemp.transpose() * Bmat2.transpose() * Bmat2 * ctemp,-0.5);
+
+        		if(lowhi==1) {
+        			fjac(0,i) = -gamma * BtB1 * ctemp.transpose() * Mxmat * ctemp;
+        			fjac(1,i) = -gamma * BtB1 * ctemp.transpose() * Mymat * ctemp;
+					fjac(2,i) = -gamma * BtB2 * ctemp.transpose() * Mxmat2 * ctemp;
+					fjac(3,i) = -gamma * BtB2 * ctemp.transpose() * Mymat2 * ctemp;        			
+        		}
+
+        		else{
+        			fjac(0,i) += gamma * BtB1 * ctemp.transpose() * Mxmat * ctemp;
+        			fjac(1,i) += gamma * BtB1 * ctemp.transpose() * Mymat * ctemp;
+        			fjac(2,i) += gamma * BtB2 * ctemp.transpose() * Mxmat2 * ctemp;
+					fjac(3,i) += gamma * BtB2 * ctemp.transpose() * Mymat2 * ctemp;        			
+        			fjac(0,i) *= 1/di;
+					fjac(1,i) *= 1/di;
+					fjac(2,i) *= 1/di;
+					fjac(3,i) *= 1/di;
+
+        		}
+        	}
+        	
+        }
+        cout << "df: " << endl;
+        cout << fjac << endl;
+
+        return 0;
+}
 
 //definitions:
 CoilFunctor::CoilFunctor(Coil coil, Magnet magnet) : Functor<double>(6,6) {
         d = coil.d;
         R = coil.R;
+        /*x = magnet.x[0];
+        y = magnet.y[0];
+        Fx = magnet.Fx[0];
+        Fy = magnet.Fy[0]; 
+        */
         x = magnet.x;
         y = magnet.y;
         Fx = magnet.Fx;

@@ -5,6 +5,8 @@
 
 int main(int argc, char **argv)
 {
+   //One Magnet
+   if(0){
    //ros::init(argc, argv ,"current");
    //ros::start();
    const int n =6; // 4I , 2 lambda
@@ -20,12 +22,15 @@ int main(int argc, char **argv)
    coil.R = 8900;
    magnet1.x = 10.0;
    magnet1.y = 0.0;
-   magnet1.Fx = 0.0283;
-   magnet1.Fy = 0.0283;
+   magnet1.Fx = 0.0283;//0.0283;
+   magnet1.Fy = 0.0;
    magnet1.gamma = 6500;
+
    magnet1.Mxmat = Mx(magnet1.x,magnet1.y,coil.R,coil.d);
+   //magnet1.Mxmat = Mx(10.0,0.0,coil.R,coil.d);
    magnet1.Mymat = My(magnet1.x,magnet1.y,coil.R,coil.d);
 
+   cout << "magnet1.Mxmat: " << magnet1.Mxmat << endl;
    //ros::Time begin = ros::Time::now(); //begin time
 
    CoilFunctor functor(coil, magnet1); // functor( ) add arguments here.
@@ -51,5 +56,58 @@ int main(int argc, char **argv)
    ros::Time endtime = ros::Time::now();
    double dt = (endtime - begin).toSec(); 
    //cout << "Time to compute: " << dt << "secs" << endl; //timing */
+   }
+
+   // 2 magnet 
+   const int n =4; // 4I 
+   int info;
+   VectorXd b(n);
+
+   //b << -10,20,10,10.0; // x: [10 10 0 0], F = [-20 20 0 0] matches matlab
+
+   b << -200, 200, 200, -100;    
+   Magnet magnet2;
+   Coil coil;
+   coil.d = 57.5;
+   coil.R = 8900;
+   magnet2.gamma = 6500;
+   // xnow
+   magnet2.x = 0.0;
+   magnet2.y = 0.0;
+   magnet2.x2 = 10.0;
+   magnet2.y2 = 10.0;
+   //fdes
+   magnet2.Fx = 0.0;//0.0283;
+   magnet2.Fy = 20.0;
+   magnet2.Fx2 = -20.0;//0.0283;
+   magnet2.Fy2 = 20.0;
+   
+   magnet2.Mxmat = Mx(magnet2.x,magnet2.y,coil.R,coil.d);
+   magnet2.Mymat = My(magnet2.x,magnet2.y,coil.R,coil.d);
+
+   magnet2.Mxmat2 = Mx(magnet2.x2,magnet2.y2,coil.R,coil.d);
+   magnet2.Mymat2 = My(magnet2.x2,magnet2.y2,coil.R,coil.d);
+
+   magnet2.Bmat  = computeBmat(magnet2.x,magnet2.y,coil.R,coil.d);
+   magnet2.Bmat2 = computeBmat(magnet2.x2,magnet2.y2,coil.R,coil.d);
+
+   CoilFunctor2 functor(coil, magnet2); // functor( ) add arguments here.
+   //CoilFunctor2 functor2(coil, magnet1);
+
+   LevenbergMarquardt<CoilFunctor2> lm(functor);
+   info = lm.minimize(b);
+   //HybridNonLinearSolver<CoilFunctor> solver(functor);
+   //info = solver.solve(b);
+   //info = solver.hybrd1(b);
+   
+  // check return value
+   cout << " 2 magnet2 " << endl;
+   cout << "info: " << info << endl;
+
+   //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
+   VectorXd current(4);
+   current = b;
+   cout << "current: \n " << current << endl;
+
    return 0;
 }

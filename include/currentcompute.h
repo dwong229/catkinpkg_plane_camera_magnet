@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 #include <typeinfo>
+#include <iostream>
 #include <unsupported/Eigen/NonLinearOptimization>
 
 using Eigen::MatrixXd;
@@ -39,6 +40,16 @@ struct Magnet{
   double gamma;
   MatrixXd Mxmat;
   MatrixXd Mymat;
+
+  // for 2d case
+  double x2;
+  double y2;
+  double Fx2;
+  double Fy2;
+  MatrixXd Mxmat2;
+  MatrixXd Mymat2;
+  MatrixXd Bmat;
+  MatrixXd Bmat2;
 };
 
 //Generic Functor
@@ -85,7 +96,11 @@ struct CoilFunctor2 : Functor<double>
 {
   CoilFunctor2(Coil c, Magnet m); //: CoilFunctor(c, m) {}
 
-  double d, R, gamma, Fx[], Fy[], x[], y[];
-  MatrixXd Mxmat1, Mymat1, Mxmat2, Mymat2;
+  double d, R, gamma;
+  double Fx, Fy, x, y, x2, y2, Fx2, Fy2;
+  MatrixXd Mxmat, Mymat, Mxmat2, Mymat2, Bmat, Bmat2;
+  
+  int operator()(const VectorXd&, VectorXd&);
+  int df(const VectorXd&, MatrixXd&);
 
 };
