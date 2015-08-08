@@ -35,8 +35,21 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     t_last_proc = data.header.stamp; // update last time
 
     kf.processUpdate(dt);
-    const KalmanFilter::Measurement_t meas(data.xyPixX[0],data.xyPixY[0]);
 
+    vector<double> xyWorldX (data.actrobot,0.0);
+    vector<double> xyWorldY (data.actrobot,0.0);
+    vector<double> xyWorldXdot (data.actrobot,0.0);
+    vector<double> xyWorldYdot (data.actrobot,0.0);
+    KalmanFilter::State_t state; //const KalmanFilter::State_t state, constant dropped.
+    // loop through number of actual robots
+    for (int i = 0; i<data.actrobot ; ++i)
+    {
+
+        //check if number exists in see references for magnets in visualization_filtered. 
+        
+        // if it exisits, run through filter.   
+        const KalmanFilter::Measurement_t meas(data.xyPixX[0],data.xyPixY[0]);
+    
     
     if(data.xySize[0]!=0)
     {
@@ -47,9 +60,38 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
         kf.measurementUpdate(meas, meas_dt);
     }
 
-    const KalmanFilter::State_t state = kf.getState();
+    state = kf.getState();
     const KalmanFilter::ProcessCov_t proc_noise = kf.getProcessNoise();
     // KF computation end
+
+        //convert pix into world coords:
+    // 4. Convert to xySorted coords
+    
+    
+    xyWorldX.at(0) = (state(0) - centerpixx)/pix2m;
+    xyWorldY.at(0) = (-state(1) + centerpixy)/pix2m;
+    xyWorldXdot.at(0) = state(2)/pix2m;
+    xyWorldYdot.at(0) = state(3)/pix2m;
+
+        
+    //pupulate /kf_pose/magnetactual 
+    magnetactual_msg.header.stamp = data.header.stamp;
+    magnetactual_msg.header.frame_id = data.header.frame_id;
+    magnetactual_msg.xyPixX.assign(1,state(0));
+    magnetactual_msg.xyPixY.assign(1,state(1));
+    magnetactual_msg.xySize = data.xySize;
+    magnetactual_msg.xyAngledeg.assign(1,0);
+    magnetactual_msg.xyAnglerad.assign(1,0);
+    magnetactual_msg.actrobot = data.actrobot;
+    magnetactual_msg.sortidx = data.sortidx;
+
+    magnetactual_msg.xyWorldX = xyWorldX;
+    magnetactual_msg.xyWorldY = xyWorldY;
+    magnetactual_msg.xyWorldXdot = xyWorldXdot;
+    magnetactual_msg.xyWorldYdot = xyWorldYdot;
+
+    magnetactual_msg.xyPixX.push_back(999);
+
 
     //populate odom_msg to be published
     /* // For xyFiltered
@@ -70,14 +112,15 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     */
 
     // troubleshoot cout:
-    cout << "proc noise" << proc_noise << endl;
-    cout << "state" << state << endl;
-    std::cout << "dt: " << dt << std::endl;
-    std::cout << "filterpose: "<< data.xyPixX[0] << "," << data.xyPixY[0] << std::endl;
-    std::cout << "xyPixXY: " << state(0) << ", " << state(1) << std::endl;
+    //cout << "proc noise" << proc_noise << endl;
+    //cout << "state: " << state.transpose() << endl;
+    //std::cout << "dt: " << dt << std::endl;
+    //std::cout << "filterpose: "<< data.xyPixX[0] << "," << data.xyPixY[0] << std::endl;
+    //std::cout << "xyPixXY: " << state(0) << ", " << state(1) << std::endl;
     std::cout << "Velocity: " << state(2) << ", " << state(3) << std::endl;
     std::cout << "==========" << std::endl;
-    
+    }
+    //for visualization markers
     rawpoints.header.seq = kfpoints.header.seq = kfline_list.header.seq = kfline_strip.header.seq = data.header.seq;
     rawpoints.header.stamp = kfpoints.header.stamp = kfline_list.header.stamp = kfline_strip.header.stamp = data.header.stamp;
     rawpoints.header.frame_id = kfpoints.header.frame_id = kfline_strip.header.frame_id = kfline_list.header.frame_id = data.header.frame_id; //camera id
@@ -146,36 +189,7 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     kfline_list.points.resize(2);
     kfline_list.points[0] = p;
     kfline_list.points[1] = v;
-
-    //convert pix into world coords:
-    // 4. Convert to xySorted coords
-    vector<double> xyWorldX (data.actrobot,0.0);
-    vector<double> xyWorldY (data.actrobot,0.0);
-    vector<double> xyWorldXdot (data.actrobot,0.0);
-    vector<double> xyWorldYdot (data.actrobot,0.0);
-    
-    xyWorldX.at(0) = (state(0) - centerpixx)/pix2m;
-    xyWorldY.at(0) = (-state(1) + centerpixy)/pix2m;
-    xyWorldXdot.at(0) = state(2)/pix2m;
-    xyWorldYdot.at(0) = state(3)/pix2m;
-
-        
-    //pupulate /kf_pose/magnetactual 
-    magnetactual_msg.header.stamp = data.header.stamp;
-    magnetactual_msg.header.frame_id = data.header.frame_id;
-    magnetactual_msg.xyPixX.assign(1,state(0));
-    magnetactual_msg.xyPixY.assign(1,state(1));
-    magnetactual_msg.xySize = data.xySize;
-    magnetactual_msg.xyAngledeg.assign(1,0);
-    magnetactual_msg.xyAnglerad.assign(1,0);
-    magnetactual_msg.actrobot = data.actrobot;
-    magnetactual_msg.sortidx = data.sortidx;
-
-    magnetactual_msg.xyWorldX = xyWorldX;
-    magnetactual_msg.xyWorldY = xyWorldY;
-    magnetactual_msg.xyWorldXdot = xyWorldXdot;
-    magnetactual_msg.xyWorldYdot = xyWorldYdot;
-
+    //end visualization markers
 
     //PUBLISH
     kfmarker_pub.publish(kfpoints);
