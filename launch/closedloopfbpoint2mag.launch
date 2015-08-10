@@ -10,5 +10,6 @@
         pkg ="plane_camera_magnet"
         type = "roboclaw4listen_pub.py"
         output = "screen">
+        <remap from="/closedloopfbpoint/roboclawcmddesired" to="/closedloopfbpoint2mag/roboclawcmddesired"/>
     </node>
 </launch>

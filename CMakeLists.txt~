@@ -161,3 +161,9 @@ target_link_libraries(closedloopfbpoint
   plane_camera_magnet
 )
 
+add_executable(closedloopfbtraj src/closedloopfbtraj.cpp)
+target_link_libraries(closedloopfbtraj
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+

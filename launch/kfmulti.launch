@@ -1,0 +1,22 @@
+<launch>
+    <node name="filterpose"
+        pkg="plane_camera_magnet" 
+        type = "filterpose"
+        output="screen">
+        <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calplane.yml"/>
+    </node>    
+    <node name="kfpose_mag1"
+        pkg="plane_camera_magnet"
+        type="kf_pose"
+        output="screen">
+        <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calplane.yml"/>
+        <param name="magidx" type="int" value="0" />
+    </node>
+    <node name="kfpose_mag2"
+        pkg="plane_camera_magnet"
+        type="kf_pose"
+        output="screen">
+        <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calplane.yml"/>
+        <param name="magidx" type="int" value="1" />
+    </node>
+</launch>

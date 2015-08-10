@@ -69,7 +69,7 @@ int CoilFunctor2::df(const VectorXd &c, MatrixXd &fjac)
 		double BtB1, BtB2;
         //fjac(equation#, derivative wrt b[i])
         // Force equation derivatives 
-        double di = .0001;
+        double di = .0001; //distance step
         VectorXd ctemp;
         for(int i=0; i<4; i++){
         	ctemp = c;
@@ -77,7 +77,7 @@ int CoilFunctor2::df(const VectorXd &c, MatrixXd &fjac)
         		// compute lower bound first:
         		// ctemp = c[i] + di/2
         		ctemp[i] = c[i] + di/2*pow(-1.0,lowhi);
-        		std::cout << "ctemp: " << ctemp.transpose() << endl;
+        		//std::cout << "ctemp: " << ctemp.transpose() << endl;
         		BtB1 = pow(ctemp.transpose() * Bmat.transpose() * Bmat * ctemp,-0.5);
         		BtB2 = pow(ctemp.transpose() * Bmat2.transpose() * Bmat2 * ctemp,-0.5);
 
@@ -102,8 +102,8 @@ int CoilFunctor2::df(const VectorXd &c, MatrixXd &fjac)
         	}
         	
         }
-        cout << "df: " << endl;
-        cout << fjac << endl;
+        //cout << "df: " << endl;
+        //cout << fjac << endl;
 
         return 0;
 }
