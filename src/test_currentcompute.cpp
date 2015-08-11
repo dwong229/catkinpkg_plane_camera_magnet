@@ -109,5 +109,12 @@ int main(int argc, char **argv)
    current = b;
    cout << "current: \n " << current << endl;
 
+   VectorXd error(4);
+   functor.operator()(b,error);
+   cout << "error: " << error.transpose() << endl;
+
+   //vector<double> errorvec;
+   vector<double> errorvec(error.data(),error.data() + error.rows() * error.cols());
+   cout << errorvec.at(1) << endl;
    return 0;
 }

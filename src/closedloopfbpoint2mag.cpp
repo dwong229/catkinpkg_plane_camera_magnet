@@ -203,8 +203,14 @@ int main(int argc, char **argv)
 
         solversoln_msg.Fdes = vector<double> (Fdes,Fdes + 4);
         solversoln_msg.info = info;
-        // error not assigned yet.
+		
+		// compute error: F(current) - Fdesired
+		VectorXd error(4);
+   		functor.operator()(b,error);
+   		cout << "error: " << error.transpose() << endl;
+        solversoln_msg.error(error.data(),error.data() + error.rows() * error.cols());
 
+        //  add notion of error to detemine if solution should be published
         if(info==2) // || info == 1)
         {
             //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;

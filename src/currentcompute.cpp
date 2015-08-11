@@ -53,7 +53,7 @@ int CoilFunctor2::operator()(const VectorXd &c, VectorXd &fvec)
     fvec[2] = gamma * BtB2 * c.transpose() * Mxmat2 * c - Fx2;
     fvec[3] = gamma * BtB2 * c.transpose() * Mymat2 * c - Fy2;
     
-    cout << "operator: " << fvec.transpose() << endl;
+    //cout << "operator: " << fvec.transpose() << endl;
     //cout << "c: " << c.transpose() << endl;
     return 0;
 }
