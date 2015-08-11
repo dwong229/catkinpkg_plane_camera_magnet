@@ -1,11 +1,11 @@
 %YAML:1.0
 xgoal: 0.0
-ygoal: 10.0
-kx: .4
-kv: 0.5
-ki: 0.01
+ygoal: 0.0
+kx: .6
+kv: 0.
+ki: 0.
 xgoal2: 0.0
-ygoal2: -10.0
-kx2: .4
-kv2: 0.5
-ki2: 0.01
+ygoal2: 0.0
+kx2: .6
+kv2: 0.
+ki2: 0.

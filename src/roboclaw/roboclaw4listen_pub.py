@@ -159,7 +159,7 @@ def callback(desiredcmd):
     #print ("Coil3: ", desiredcmd.m3)
     #print ("Coil4: ", desiredcmd.m4)    
     
-    rate = rospy.Rate(50) #Hz
+    rate = rospy.Rate(1) #Hz
 
     minval = 0
     maxval = 512

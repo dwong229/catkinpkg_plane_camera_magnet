@@ -65,22 +65,22 @@ int main(int argc, char **argv)
 
    //b << -10,20,10,10.0; // x: [10 10 0 0], F = [-20 20 0 0] matches matlab
 
-   b << -200, 200, 200, -100;    
+   b << 100, 1, 100, 0;    
    Magnet magnet2;
    Coil coil;
    coil.d = 57.5;
    coil.R = 8900;
    magnet2.gamma = 6500;
    // xnow
-   magnet2.x = 0.0;
+   magnet2.x = -10.0;
    magnet2.y = 0.0;
    magnet2.x2 = 10.0;
-   magnet2.y2 = 10.0;
+   magnet2.y2 = 0.0;
    //fdes
-   magnet2.Fx = 0.0;//0.0283;
-   magnet2.Fy = 20.0;
-   magnet2.Fx2 = -20.0;//0.0283;
-   magnet2.Fy2 = 20.0;
+   magnet2.Fx = 1.0;//0.0283;
+   magnet2.Fy = 0.0;
+   magnet2.Fx2 = -1.0;//0.0283;
+   magnet2.Fy2 = 0.0;
    
    magnet2.Mxmat = Mx(magnet2.x,magnet2.y,coil.R,coil.d);
    magnet2.Mymat = My(magnet2.x,magnet2.y,coil.R,coil.d);

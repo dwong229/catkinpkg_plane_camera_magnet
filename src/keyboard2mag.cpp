@@ -15,7 +15,7 @@ using namespace std;
 plane_camera_magnet::PositionCommand mag1_actual, mag2_actual;
 int numrobot;
 bool newmsg;
-static visualization_msgs::Marker goalvis, fdesvis;
+static visualization_msgs::Marker fdesvis;
 
 void xyFilteredcallback1(const plane_camera_magnet::xyFiltered& data)
 {
@@ -52,33 +52,15 @@ void xyFilteredcallback2(const plane_camera_magnet::xyFiltered& data)
 int main(int argc, char **argv)
 {
 
-    ros::init(argc, argv, "closedloopfbpoint");
+    ros::init(argc, argv, "keyboard2mag");
     ros::NodeHandle nh("~");
-
-    std::string param_filename;
-    nh.param("param_filename", param_filename, std::string("closedloopfbpoint.yml"));
-    ROS_INFO_STREAM("param filename " << param_filename);
-    cv::FileStorage fscal(param_filename.c_str(), cv::FileStorage::READ);
-    double xgoal1 = (double)fscal["xgoal"];
-    double ygoal1 = (double)fscal["ygoal"];
-    double kx = (double)fscal["kx"];
-    double kv = (double)fscal["kv"];
-    double ki = (double)fscal["ki"];
-    double xgoal2 = (double)fscal["xgoal2"];
-    double ygoal2 = (double)fscal["ygoal2"];
-    double kx2 = (double)fscal["kx2"];
-    double kv2 = (double)fscal["kv2"];
-    double ki2 = (double)fscal["ki2"];
-
-    plane_camera_magnet::PositionCommand goal1, goal2;
 
     plane_camera_magnet::roboclawCmd roboclawCmdDesired;
     plane_camera_magnet::nonlinearsolversoln solversoln_msg;
     //Setup publisher:
     ros::Publisher roboCmdDes_pub = nh.advertise<plane_camera_magnet::roboclawCmd>("roboclawcmddesired",1); // always publish newest command
     ros::Publisher solversoln_pub = nh.advertise<plane_camera_magnet::nonlinearsolversoln>("nonlinearsolversoln",1); // always publish newest command
-    ros::Publisher goalvis_pub = nh.advertise<visualization_msgs::Marker>("vis_goal", 10);
-
+    ros::Publisher vis_pub = nh.advertise<visualization_msgs::Marker>("vis_goal", 10);
 
     ros::Subscriber xyFiltered1_sub_ = nh.subscribe("/kfpose_mag1/magnetactual",1, xyFilteredcallback1);
     ros::Subscriber xyFiltered2_sub_ = nh.subscribe("/kfpose_mag2/magnetactual",1, xyFilteredcallback2);
@@ -89,37 +71,7 @@ int main(int argc, char **argv)
     coil.d = 57.5;
     Magnet magnet;
     magnet.gamma = 6500;
-
-    goal1.position.x = xgoal1;
-    goal1.position.y = ygoal1;
-    goal1.velocity.x = 0;
-    goal1.velocity.y = 0;
-    goal1.acceleration.x = 0;
-    goal1.acceleration.y = 0;
-
-    goal2.position.x = xgoal2;
-    goal2.position.y = ygoal2;
-    goal2.velocity.x = 0;
-    goal2.velocity.y = 0;
-    goal2.acceleration.x = 0;
-    goal2.acceleration.y = 0;
-
-    // publish goals positions once:
-    goalvis.header.frame_id = fdesvis.header.frame_id ="/camera_frame";
-    goalvis.header.stamp = fdesvis.header.stamp = ros::Time::now();
-    goalvis.ns = fdesvis.ns = "closedloopfbpoint2mag";
-    goalvis.action = fdesvis.action = visualization_msgs::Marker::ADD;
-    // rotation of frame in quaternions
-    goalvis.pose.orientation.x = goalvis.pose.orientation.y = goalvis.pose.orientation.z = 0.0;
-    goalvis.pose.orientation.w  = fdesvis.pose.orientation.w = 1.0;
-    goalvis.type = visualization_msgs::Marker::SPHERE_LIST;
-    goalvis.scale.x = goalvis.scale.y = 0.4;
-    goalvis.color.r = 1.0f;
-    goalvis.color.a = 1.0;
-    goalvis.points.resize(2);
-    goalvis.points[0] = goal1.position;
-    goalvis.points[1] = goal2.position;
-
+    
     fdesvis.id = 2;
     fdesvis.type = visualization_msgs::Marker::LINE_LIST;
     fdesvis.scale.x = 0.1;
@@ -127,24 +79,10 @@ int main(int argc, char **argv)
     fdesvis.color.b = 1.0f;
     fdesvis.color.a = 1.0;
 
-
-
     const int n =4; // 4I , 2 lambda
     int info;
     VectorXd b(n);
-    //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
-    //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
-    //b << 1., 2., 1., 4.; // F = [0.0283, 0]
     b << 1.,1.,1.,20.;
-    double freq = 100.;
-    ros::Rate loop_rate(freq);
-
-    
-    //cout << size.traj() << endl;
-    int count = 0;
-    double integrateerror[2];
-    integrateerror[0] = integrateerror[1] = integrateerror[2] = integrateerror[3] = 0;
-
 
     while(ros::ok())
     {
@@ -153,21 +91,36 @@ int main(int argc, char **argv)
         mag1_actual.acceleration.y = 0;
         
         double mass = 4*0.0000707;
-        //double mass = 1.;
+        
+        // Wait for input: 
+        int input;
+        cout << "Enter mode: 1:pull apart 2:push together 3:off" << endl;
+        std::cin >> input;
 
-        // compute F desired
-        //integrateerror[0] += (goal1.position.x - mag1_actual.position.x)/freq;
-        //integrateerror[1] += (goal1.position.y - mag1_actual.position.y)/freq;
-        //integrateerror[2] += (goal2.position.x - mag2_actual.position.x)/freq;
-        //integrateerror[3] += (goal2.position.y - mag2_actual.position.y)/freq;
-        //cout << "integrateerror: " << integrateerror[0] << endl;
 
+        if(input == 1)
+            {   
+                cout<< "Pull Apart" << endl;
+            }
+            else if (input == 2)
+            {
+                cout << "Push Together" << endl;
+
+            }
+            else
+            {
+                cout << "Coils Off" << endl;
+            }
+
+
+        // compute F desired depending on input:
         double Fdes[n];
 
-        Fdes[0] = goal1.acceleration.x * mass + kx * (goal1.position.x - mag1_actual.position.x) + kv * (goal1.position.x - mag1_actual.velocity.x) + ki * integrateerror[0];
-        Fdes[1] = goal1.acceleration.y * mass + kx * (goal1.position.y - mag1_actual.position.y) + kv * (goal1.position.y - mag1_actual.velocity.y) + ki * integrateerror[1];
-        Fdes[2] = goal2.acceleration.x * mass + kx2 * (goal2.position.x - mag2_actual.position.x) + kv2 * (goal2.position.x - mag2_actual.velocity.x) + ki2 * integrateerror[2];
-        Fdes[3] = goal2.acceleration.y * mass + kx2 * (goal2.position.y - mag2_actual.position.y) + kv2 * (goal2.position.y - mag2_actual.velocity.y) + ki2 * integrateerror[3];
+
+        Fdes[0] = 1.0;
+        Fdes[1] = 1.0;
+        Fdes[2] = 1.0;
+        Fdes[3] = 1.0;
 
         geometry_msgs::Point fdespoint1,fdespoint2;
         fdespoint1.x = Fdes[0];
@@ -214,7 +167,7 @@ int main(int argc, char **argv)
         solversoln_msg.info = info;
 
         double xtemp[] = {mag1_actual.position.x, mag1_actual.position.y, mag2_actual.position.x, mag2_actual.position.y};
-        double dxtemp[] = {goal1.position.x - mag1_actual.position.x, goal1.position.y - mag1_actual.position.y, goal2.position.x - mag2_actual.position.x, goal2.position.y - mag2_actual.position.y};
+        //double dxtemp[] = {goal1.position.x - mag1_actual.position.x, goal1.position.y - mag1_actual.position.y, goal2.position.x - mag2_actual.position.x, goal2.position.y - mag2_actual.position.y};
 
         solversoln_msg.xactual = vector<double> (xtemp, xtemp+ 4);
         solversoln_msg.dx = vector<double> (dxtemp,dxtemp +4);
@@ -222,11 +175,11 @@ int main(int argc, char **argv)
 
         solversoln_msg.Fdes = vector<double> (Fdes,Fdes + 4);
         solversoln_msg.info = info;
-		
-		// compute error: F(current) - Fdesired
-		VectorXd error(4);
-   		functor.operator()(b,error);
-   		cout << "error: " << error.transpose() << endl;
+        
+        // compute error: F(current) - Fdesired
+        VectorXd error(4);
+        functor.operator()(b,error);
+        cout << "error: " << error.transpose() << endl;
         solversoln_msg.error = vector<double> (error.data(),error.data() + error.rows() * error.cols());
 
         //  add notion of error to detemine if solution should be published
@@ -273,11 +226,9 @@ int main(int argc, char **argv)
 
         solversoln_pub.publish(solversoln_msg);
         //loop_rate.sleep();
-        goalvis_pub.publish(goalvis);
-        goalvis_pub.publish(fdesvis);
+        vis_pub.publish(fdesvis);
 
         ros::spinOnce();
-        ++count;
     }
     return 0;
 }
