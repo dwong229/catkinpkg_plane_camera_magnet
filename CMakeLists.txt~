@@ -172,3 +172,15 @@ target_link_libraries(closedloopfbpoint2mag
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(keyboard2mag src/keyboard2mag.cpp)
+target_link_libraries(keyboard2mag
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(currentcalc_bruteforce src/currentcalc_bruteforce.cpp)
+target_link_libraries(currentcalc_bruteforce
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

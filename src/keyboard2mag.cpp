@@ -28,9 +28,7 @@ void assignxy(plane_camera_magnet::PositionCommand &mag, VectorXd assign)
 void xyFilteredcallback1(const plane_camera_magnet::xyFiltered& data)
 {
 
-  // unpack subscribed values to vector of keypoints
-    numrobot = data.actrobot;
-    
+  // unpack subscribed values to vector of keypoints    
     if(!data.xyWorldX.empty())
     {
         mag1_actual.position.x = double(data.xyWorldX.at(0));
@@ -80,6 +78,7 @@ int main(int argc, char **argv)
     Magnet magnet;
     magnet.gamma = 6500;
     
+    fdesvis.header.frame_id = "/camera_frame";
     fdesvis.id = 2;
     fdesvis.type = visualization_msgs::Marker::LINE_LIST;
     fdesvis.scale.x = 0.1;
@@ -90,6 +89,7 @@ int main(int argc, char **argv)
     const int n =4; // 4I , 2 lambda
     int info;
     VectorXd b(n);
+    ros::Rate r(10);
 
     while(ros::ok())
     {
@@ -98,11 +98,10 @@ int main(int argc, char **argv)
         VectorXd mag2(4);
 
          //For manual magnet location test
-        mag1 << -10.,-10.,3.,4.;
-        mag2 << 10.,10.,7.,8.;
-        
-        assignxy(mag1_actual,mag1);
-        assignxy(mag2_actual,mag2);
+        //mag1 << -10.,-10.,3.,4.;
+        //mag2 << 10.,10.,7.,8.;
+        //assignxy(mag1_actual,mag1);
+        //assignxy(mag2_actual,mag2);
         
         
         // pause for 1second and set current to 0?
@@ -114,6 +113,9 @@ int main(int argc, char **argv)
         
         std::cin >> input;
         
+        // update mag posn
+        ros::spinOnce();
+
         double dx12 = mag2_actual.position.x - mag1_actual.position.x; //vector 1->2
         double dy12 = mag2_actual.position.y - mag1_actual.position.y; //vector 1->2
         double dist = pow(pow(dx12,2) + pow(dy12,2),0.5);
@@ -138,10 +140,10 @@ int main(int argc, char **argv)
             {
                 cout << "Push Together" << endl;
                 b << 1.,10.,1.,10.;
-                Fdes[0] = dx12/dist * Fmag;
-                Fdes[1] = dy12/dist * Fmag;
-                Fdes[2] = -dx12/dist * Fmag;
-                Fdes[3] = -dy12/dist * Fmag;
+                Fdes[0] = dx12/dist * Fmag * 2;
+                Fdes[1] = dy12/dist * Fmag * 2;
+                Fdes[2] = -dx12/dist * Fmag * 2;
+                Fdes[3] = -dy12/dist * Fmag * 2;
 
             }
             else if (input == 3)
@@ -186,9 +188,16 @@ int main(int argc, char **argv)
         //update fdes
         fdesvis.points.resize(4);
         fdesvis.points[0] = mag1_actual.position;
-        fdesvis.points[1] = fdespoint1;
+        geometry_msgs::Point f;
+        f.x = mag1_actual.position.x + fdespoint1.x;
+        f.y = mag1_actual.position.y + fdespoint1.y;
+        f.z = 0;
+        fdesvis.points[1] = f;
         fdesvis.points[2] = mag2_actual.position;
-        fdesvis.points[3] = fdespoint2;
+        f.x = mag2_actual.position.x + fdespoint2.x;
+        f.y = mag2_actual.position.y + fdespoint2.y;
+        f.z = 0;
+        fdesvis.points[3] = f;
 
         // compute currents to send to roboclaw using nonlinear solver.
         // update magnet variables:
@@ -281,7 +290,18 @@ int main(int argc, char **argv)
         //loop_rate.sleep();
         vis_pub.publish(fdesvis);
 
-        ros::spinOnce();
+        //wait for a second a set to 0:
+        r.sleep();
+
+        roboclawCmdDesired.header.stamp = ros::Time::now();
+        roboclawCmdDesired.m1 = int(0);
+        roboclawCmdDesired.m2 = int(0);
+        roboclawCmdDesired.m3 = int(0);
+        roboclawCmdDesired.m4 = int(0);
+        // publish pwm commands to roboclawCmdDesired
+        roboCmdDes_pub.publish(roboclawCmdDesired);
+
+        //ros::spinOnce();
     }
     return 0;
 }
