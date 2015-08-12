@@ -17,6 +17,14 @@ int numrobot;
 bool newmsg;
 static visualization_msgs::Marker fdesvis;
 
+void assignxy(plane_camera_magnet::PositionCommand &mag, VectorXd assign)
+{
+    mag.position.x = assign[0];
+    mag.position.y = assign[1];
+    mag.velocity.x = assign[2];
+    mag.velocity.y = assign[3];
+}
+
 void xyFilteredcallback1(const plane_camera_magnet::xyFiltered& data)
 {
 
@@ -82,45 +90,89 @@ int main(int argc, char **argv)
     const int n =4; // 4I , 2 lambda
     int info;
     VectorXd b(n);
-    b << 1.,1.,1.,20.;
 
     while(ros::ok())
     {
         // take in position of robot
-        mag1_actual.acceleration.x = 0;
-        mag1_actual.acceleration.y = 0;
+        VectorXd mag1(4);
+        VectorXd mag2(4);
+
+         //For manual magnet location test
+        mag1 << -10.,-10.,3.,4.;
+        mag2 << 10.,10.,7.,8.;
         
-        double mass = 4*0.0000707;
+        assignxy(mag1_actual,mag1);
+        assignxy(mag2_actual,mag2);
         
+        
+        // pause for 1second and set current to 0?
+
+
         // Wait for input: 
         int input;
-        cout << "Enter mode: 1:pull apart 2:push together 3:off" << endl;
+        cout << "Enter mode: 1:pull apart 2:push together 3:toward y-axis (vertical) 4: toward x-axis" << endl;
+        
         std::cin >> input;
-
+        
+        double dx12 = mag2_actual.position.x - mag1_actual.position.x; //vector 1->2
+        double dy12 = mag2_actual.position.y - mag1_actual.position.y; //vector 1->2
+        double dist = pow(pow(dx12,2) + pow(dy12,2),0.5);
+        cout << "mag1: [ " << mag1_actual.position.x << " , " << mag1_actual.position.y << " ]" << endl;
+        cout << "mag2: [ " << mag2_actual.position.x << " , " << mag2_actual.position.y << " ]" << endl;
+        cout << "dist: " << dist << endl;
+        //print x,y:
+        double Fmag = 5.0; //magnitude of force
+        double Fdes[n];
 
         if(input == 1)
             {   
                 cout<< "Pull Apart" << endl;
+                b << 10.,1.,10.,1.;
+                Fdes[0] = -dx12/dist * Fmag;
+                Fdes[1] = -dy12/dist * Fmag;
+                Fdes[2] = dx12/dist * Fmag;
+                Fdes[3] = dy12/dist * Fmag;
+
             }
             else if (input == 2)
             {
                 cout << "Push Together" << endl;
+                b << 1.,10.,1.,10.;
+                Fdes[0] = dx12/dist * Fmag;
+                Fdes[1] = dy12/dist * Fmag;
+                Fdes[2] = -dx12/dist * Fmag;
+                Fdes[3] = -dy12/dist * Fmag;
 
+            }
+            else if (input == 3)
+            {
+                cout << "Toward y-axis" << endl;
+                b << 10.,0.,10.,0; // if x>0, Fdes = -Fmag, 
+                Fdes[0] = copysign(Fmag,mag1_actual.position.x) * (-1);
+                Fdes[1] = 0.;
+                Fdes[2] = copysign(Fmag,mag2_actual.position.x) * (-1);
+                Fdes[3] = 0.;
+            }
+            else if (input == 4)
+            {
+                cout << "Toward x-axis" << endl;
+                b << 10.,0.,10.,0; // if x>0, Fdes = -Fmag, 
+                Fdes[1] = copysign(Fmag,mag1_actual.position.y) * (-1);
+                Fdes[0] = 0.;
+                Fdes[3] = copysign(Fmag,mag2_actual.position.y) * (-1);
+                Fdes[2] = 0.;
             }
             else
             {
                 cout << "Coils Off" << endl;
+                b << 0.,0.,0.,0.;
+                Fdes[0] = 0.001;
+                Fdes[1] = 0.001;
+                Fdes[2] = 0.001;
+                Fdes[3] = 0.001;
             }
 
-
-        // compute F desired depending on input:
-        double Fdes[n];
-
-
-        Fdes[0] = 1.0;
-        Fdes[1] = 1.0;
-        Fdes[2] = 1.0;
-        Fdes[3] = 1.0;
+        cout << "Fdes: " << Fdes[0] << ", " << Fdes[1] << ", " << Fdes[2] << ", " << Fdes[3] << endl;
 
         geometry_msgs::Point fdespoint1,fdespoint2;
         fdespoint1.x = Fdes[0];
@@ -170,7 +222,7 @@ int main(int argc, char **argv)
         //double dxtemp[] = {goal1.position.x - mag1_actual.position.x, goal1.position.y - mag1_actual.position.y, goal2.position.x - mag2_actual.position.x, goal2.position.y - mag2_actual.position.y};
 
         solversoln_msg.xactual = vector<double> (xtemp, xtemp+ 4);
-        solversoln_msg.dx = vector<double> (dxtemp,dxtemp +4);
+        //solversoln_msg.dx = vector<double> (dxtemp,dxtemp +4);
         
 
         solversoln_msg.Fdes = vector<double> (Fdes,Fdes + 4);
@@ -181,7 +233,7 @@ int main(int argc, char **argv)
         functor.operator()(b,error);
         cout << "error: " << error.transpose() << endl;
         solversoln_msg.error = vector<double> (error.data(),error.data() + error.rows() * error.cols());
-
+        cout << "info: " << info << endl;
         //  add notion of error to detemine if solution should be published
         if(info==2) // || info == 1)
         {
@@ -223,6 +275,7 @@ int main(int argc, char **argv)
             //b[2] = 1000;
             cout << "b: " << b << endl;
         }
+        cout << "current: " << b.transpose() << endl;
 
         solversoln_pub.publish(solversoln_msg);
         //loop_rate.sleep();
