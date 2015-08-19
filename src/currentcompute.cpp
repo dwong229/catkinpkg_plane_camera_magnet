@@ -33,8 +33,7 @@ CoilFunctor2::CoilFunctor2(Coil coil, Magnet magnet) : Functor<double>(4,4) {
         Mxmat2 = magnet.Mxmat2;
         Mymat2 = magnet.Mymat2;
 		Bmat = magnet.Bmat;
-		Bmat2 = magnet.Bmat2;        
-
+		Bmat2 = magnet.Bmat2;   
     }
 
 int CoilFunctor2::operator()(const VectorXd &c, VectorXd &fvec)
@@ -124,6 +123,9 @@ CoilFunctor::CoilFunctor(Coil coil, Magnet magnet) : Functor<double>(6,6) {
         gamma = magnet.gamma;
         Mxmat = magnet.Mxmat;
         Mymat = magnet.Mymat;
+        Dxmat = magnet.Dxmat;
+        Dymat = magnet.Dymat;
+        
       }
 
 int CoilFunctor::operator()(const VectorXd &b, VectorXd &fvec)

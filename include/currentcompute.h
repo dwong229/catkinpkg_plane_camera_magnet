@@ -50,6 +50,8 @@ struct Magnet{
   MatrixXd Mymat2;
   MatrixXd Bmat;
   MatrixXd Bmat2;
+  MatrixXd Dxmat;
+  MatrixXd Dymat;
 };
 
 //Generic Functor

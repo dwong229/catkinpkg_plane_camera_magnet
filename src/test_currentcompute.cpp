@@ -6,7 +6,7 @@
 int main(int argc, char **argv)
 {
    //One Magnet
-   if(0){
+   if(1){
    //ros::init(argc, argv ,"current");
    //ros::start();
    const int n =6; // 4I , 2 lambda
@@ -22,7 +22,7 @@ int main(int argc, char **argv)
    coil.R = 8900;
    magnet1.x = 10.0;
    magnet1.y = 0.0;
-   magnet1.Fx = 0.0283;//0.0283;
+   magnet1.Fx = 5.;//0.0283;
    magnet1.Fy = 0.0;
    magnet1.gamma = 6500;
 
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
    //magnet1.Mxmat = Mx(10.0,0.0,coil.R,coil.d);
    magnet1.Mymat = My(magnet1.x,magnet1.y,coil.R,coil.d);
 
-   cout << "magnet1.Mxmat: " << magnet1.Mxmat << endl;
+   cout << "magnet1.Mxmat : " << endl << magnet1.Mxmat << endl;
    //ros::Time begin = ros::Time::now(); //begin time
 
    CoilFunctor functor(coil, magnet1); // functor( ) add arguments here.
@@ -58,6 +58,8 @@ int main(int argc, char **argv)
    //cout << "Time to compute: " << dt << "secs" << endl; //timing */
    }
 
+   if(0)
+   {
    // 2 magnet 
    const int n =4; // 4I 
    int info;
@@ -116,5 +118,6 @@ int main(int argc, char **argv)
    //vector<double> errorvec;
    vector<double> errorvec(error.data(),error.data() + error.rows() * error.cols());
    cout << errorvec.at(1) << endl;
+}
    return 0;
 }
