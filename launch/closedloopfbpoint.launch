@@ -1,7 +1,7 @@
 <launch>
-    <node name="closedloopfbpoint2mag"
+    <node name="closedloopfbpoint"
         pkg ="plane_camera_magnet"
-        type = "closedloopfbpoint2mag"
+        type = "closedloopfbpoint"
         output ="screen"
         launch-prefix = "gdb -ex run --args">
         <param name="param_filename" value="/home/denise/catkin_ws/src/plane_camera_magnet/calib/closedloopfbpoint.yml"/>

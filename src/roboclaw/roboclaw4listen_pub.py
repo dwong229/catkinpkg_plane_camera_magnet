@@ -147,7 +147,7 @@ def talker(mval):
     msg.m4 = mval[3];
     msg.header.stamp =  rospy.Time.now();
     pub.publish(msg);
-    print "==============="
+    #print "==============="
         
     
 def callback(desiredcmd):
@@ -159,9 +159,9 @@ def callback(desiredcmd):
     #print ("Coil3: ", desiredcmd.m3)
     #print ("Coil4: ", desiredcmd.m4)    
     
-    rate = rospy.Rate(1) #Hz
+    rate = rospy.Rate(10) #Hz
 
-    minval = 0
+    minval = 2
     maxval = 512
 
     # bound value of pwm assignment
@@ -208,10 +208,6 @@ def callback(desiredcmd):
         SetM4DutyAccel(1500,0)
         pass
     rate.sleep()
-
-    
-
-
 def listener():
 
     # In ROS, nodes are uniquely named. If two nodes with the same

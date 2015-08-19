@@ -15,7 +15,7 @@ using namespace std;
 plane_camera_magnet::PositionCommand actual;
 int numrobot;
 bool newmsg;
-static visualization_msgs::Marker kfpoints, kfline_strip, kfline_list, rawpoints;
+static visualization_msgs::Marker kfpoints, kfline_strip, kfline_list, rawpoints, fdesvis;
 
 void xyFilteredcallback(const plane_camera_magnet::xyFiltered& data)
 {
@@ -59,7 +59,8 @@ int main(int argc, char **argv)
     ros::Publisher roboCmdDes_pub = nh.advertise<plane_camera_magnet::roboclawCmd>("roboclawcmddesired",1); // always publish newest command
     ros::Publisher solversoln_pub = nh.advertise<plane_camera_magnet::nonlinearsolversoln>("nonlinearsolversoln",1); // always publish newest command
 
-    ros::Subscriber xyFiltered_sub_ = nh.subscribe("/kf_pose/magnetactual",1, xyFilteredcallback);
+    //ros::Subscriber xyFiltered_sub_ = nh.subscribe("/kf_pose/magnetactual",1, xyFilteredcallback);
+    ros::Subscriber xyFiltered_sub_ = nh.subscribe("/kfpose_mag1/magnetactual",1, xyFilteredcallback);
 
     // define structs Coil and Magnet to be used in solver:
     Coil coil;
@@ -80,7 +81,7 @@ int main(int argc, char **argv)
     VectorXd b(n);
     //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
     //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
-    b << 1., 2., 600., 4., 10700, 0.; // F = [0.0283, 0]
+    b << 1., 2., 1., 4., -107., 0.; // F = [0.0283, 0]
     double freq = 100;
     ros::Rate loop_rate(freq);
 
@@ -101,9 +102,9 @@ int main(int argc, char **argv)
         //double mass = 1.;
 
         // compute F desired
-        integrateerror[0] += (goal.position.x - actual.position.x)/freq;
-        integrateerror[1] += (goal.position.y - actual.position.y)/freq;
-        cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
+        //integrateerror[0] += (goal.position.x - actual.position.x)/freq;
+        //integrateerror[1] += (goal.position.y - actual.position.y)/freq;
+        //cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
 
         double Fdes[2];
 
@@ -123,6 +124,7 @@ int main(int argc, char **argv)
 
         //solve:
         //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
+        
         CoilFunctor functor(coil, magnet1); // functor( ) add arguments here.
         LevenbergMarquardt<CoilFunctor> lm(functor);
         info = lm.minimize(b);   
@@ -142,12 +144,21 @@ int main(int argc, char **argv)
         
 
         solversoln_msg.Fdes = vector<double> (Fdes,Fdes + 2);
-        
-        // error not assigned yet.
+        solversoln_msg.info = info;
 
-        if(info==2) // || info == 1)
+        VectorXd error(6);
+        functor.operator()(b,error);
+        //cout << "error: " << error.transpose() << endl;
+        solversoln_msg.error = vector<double> (error.data(),error.data() + error.rows() * error.cols());
+
+        //  add notion of error to detemine if solution should be published
+        double errorsum = pow(error[0]*error[0] + error[1]*error[1],0.5); // sum only the force
+        // error not assigned yet.
+        cout << "errorsum: " << errorsum << endl;
+        if(errorsum < 0.00001) // || info == 1)
         {
         //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
+        cout << "Set I" << endl;
         VectorXd current(4);
         VectorXd c = b.head(4);
         MatrixXd Bmat = computeBmat(magnet1.x,magnet1.y,coil.R,coil.d);
@@ -184,7 +195,7 @@ int main(int argc, char **argv)
         {
             // if no solution, random start b.
             cout << "re-init b" << endl;
-            b = VectorXd::Random(6)*1000; // F = [0.0283, 0]
+            b = VectorXd::Random(6)*-1000; // F = [0.0283, 0]
             // test for large coil 3:
             //b[2] = 1000;
             cout << "b: " << b << endl;

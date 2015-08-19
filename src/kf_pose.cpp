@@ -191,7 +191,7 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     //kfpoints.points.resize(1);
         //kfpoints.points.push_back(p);
     kfpoints.points.push_back(p);
-    if(kfpoints.points.size()>20)
+    if(kfpoints.points.size()>1000)
     {
         kfpoints.points.erase(kfpoints.points.begin(),kfpoints.points.begin()+1);
     }
@@ -249,8 +249,8 @@ int main(int argc, char **argv)
     proc_noise_diag = proc_noise_diag.array().square();
     
     KalmanFilter::Measurement_t meas_noise_diag;
-    meas_noise_diag(0) = 1e-2; //increase value to smooth velocity.
-    meas_noise_diag(1) = 1e-2;
+    meas_noise_diag(0) = 10e-2; //increase value to smooth velocity.
+    meas_noise_diag(1) = 10e-2;
     meas_noise_diag = meas_noise_diag.array().square();
     kf.initialize(KalmanFilter::State_t::Zero(),
                   0.01*KalmanFilter::ProcessCov_t::Identity(),

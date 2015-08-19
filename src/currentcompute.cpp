@@ -130,6 +130,8 @@ int CoilFunctor::operator()(const VectorXd &b, VectorXd &fvec)
     {   
 
         assert(b.size()==6);
+
+       // cout << "fvec: " << fvec << endl;
         assert(fvec.size()==6);
 
         //cout << "Mxmat = \n" << Mxmat << endl;

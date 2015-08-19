@@ -25,9 +25,8 @@ except ImportError:
     print "numpy is not installed"
 
 checksum = 0
-
-port13 = serial.Serial("/dev/ttyUSB0", baudrate=38400, timeout=0.1)
-port24 = serial.Serial("/dev/ttyUSB1", baudrate=38400, timeout=0.1)
+port13 = serial.Serial("/dev/roboclaw0", baudrate=38400, timeout=0.1)
+port24 = serial.Serial("/dev/roboclaw1", baudrate=38400, timeout=0.1)
 noStr = "nonum"
 
 # Define global values
@@ -169,7 +168,7 @@ def talker():
         val = 100
 
         m1val = [val, 0, 0, 0]
-        m2val = [0, val, 0, 0]
+        m2val = [0, -val, 0, 0]
         m3val = [0, 0, -val, 0]
         m4val = [0, 0, 0, -val]
 

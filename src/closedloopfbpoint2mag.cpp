@@ -142,7 +142,7 @@ int main(int argc, char **argv)
     
     //cout << size.traj() << endl;
     int count = 0;
-    double integrateerror[2];
+    double integrateerror[4];
     integrateerror[0] = integrateerror[1] = integrateerror[2] = integrateerror[3] = 0;
 
 
@@ -156,11 +156,19 @@ int main(int argc, char **argv)
         //double mass = 1.;
 
         // compute F desired
-        //integrateerror[0] += (goal1.position.x - mag1_actual.position.x)/freq;
-        //integrateerror[1] += (goal1.position.y - mag1_actual.position.y)/freq;
-        //integrateerror[2] += (goal2.position.x - mag2_actual.position.x)/freq;
-        //integrateerror[3] += (goal2.position.y - mag2_actual.position.y)/freq;
+        integrateerror[0] += (goal1.position.x - mag1_actual.position.x)/freq;
+        integrateerror[1] += (goal1.position.y - mag1_actual.position.y)/freq;
+        integrateerror[2] += (goal2.position.x - mag2_actual.position.x)/freq;
+        integrateerror[3] += (goal2.position.y - mag2_actual.position.y)/freq;
         //cout << "integrateerror: " << integrateerror[0] << endl;
+        double maxinterror = 100;
+        for(int erridx = 0; erridx < 4; erridx++)
+            {
+                if(abs(integrateerror[erridx]) > maxinterror)
+                {
+                    integrateerror[erridx] = maxinterror * integrateerror[erridx]/abs(integrateerror[erridx]);
+                }
+            }
 
         double Fdes[n];
 
@@ -170,11 +178,11 @@ int main(int argc, char **argv)
         Fdes[3] = goal2.acceleration.y * mass + kx2 * (goal2.position.y - mag2_actual.position.y) + kv2 * (goal2.position.y - mag2_actual.velocity.y) + ki2 * integrateerror[3];
 
         geometry_msgs::Point fdespoint1,fdespoint2;
-        fdespoint1.x = Fdes[0];
-        fdespoint1.y = Fdes[1];
+        fdespoint1.x = mag1_actual.position.x + Fdes[0];
+        fdespoint1.y = mag1_actual.position.y + Fdes[1];
         fdespoint1.z = 0;
-        fdespoint2.x = Fdes[2];
-        fdespoint2.y = Fdes[3];
+        fdespoint2.x = mag2_actual.position.x + Fdes[2];
+        fdespoint2.y = mag2_actual.position.y + Fdes[3];
         fdespoint2.z = 0;
 
         //cout << "F: " << Fdes[0] << ", " << Fdes[1] << endl;
@@ -226,11 +234,13 @@ int main(int argc, char **argv)
 		// compute error: F(current) - Fdesired
 		VectorXd error(4);
    		functor.operator()(b,error);
-   		cout << "error: " << error.transpose() << endl;
+   		//cout << "error: " << error.transpose() << endl;
         solversoln_msg.error = vector<double> (error.data(),error.data() + error.rows() * error.cols());
 
         //  add notion of error to detemine if solution should be published
-        if(info==2) // || info == 1)
+        double errorsum = error[0] + error[1] + error[2] + error[3];
+        //cout << "sum error: " << errorsum << endl;
+        if(errorsum < 0.00001) // || info == 1)
         {
             //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
             VectorXd current(4);
@@ -269,6 +279,14 @@ int main(int argc, char **argv)
             // test for large coil 3:
             //b[2] = 1000;
             cout << "b: " << b << endl;
+            roboclawCmdDesired.header.stamp = ros::Time::now();
+            roboclawCmdDesired.m1 = 0;
+            roboclawCmdDesired.m2 = 0;
+            roboclawCmdDesired.m3 = 0;
+            roboclawCmdDesired.m4 = 0;
+        
+            // publish pwm commands to roboclawCmdDesired
+            roboCmdDes_pub.publish(roboclawCmdDesired);
         }
 
         solversoln_pub.publish(solversoln_msg);

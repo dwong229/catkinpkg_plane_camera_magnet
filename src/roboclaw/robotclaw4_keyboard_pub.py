@@ -43,7 +43,7 @@ mass = 0.000282
 
 global pwm, stepsize, toggle
 pwm = np.array([0,0,0,0])
-stepsize = 512.0/3
+stepsize = 512/4;
 toggle = np.array([1.0])
 
 #initialize m1val, m2val
@@ -215,7 +215,7 @@ print "Roboclaw 4 Coil Inputs\r\n"
 def talker():
     # publishing to roboclawcommand topic
     #pub = rospy.Publisher('roboclawcommand',roboclawCmd, queue_size = 10)
-    pub = rospy.Publisher('/roboclaw4input_pub/roboclawCmd', roboclawCmd, queue_size=10)
+    pub = rospy.Publisher('/robotclaw4keyboard_pub/roboclawCmd', roboclawCmd, queue_size=10)
     #Get version string
     sendcommand(128,21,port13);
     rcv = port13.read(32)

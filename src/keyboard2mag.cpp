@@ -123,33 +123,33 @@ int main(int argc, char **argv)
         cout << "mag2: [ " << mag2_actual.position.x << " , " << mag2_actual.position.y << " ]" << endl;
         cout << "dist: " << dist << endl;
         //print x,y:
-        double Fmag = 5.0; //magnitude of force
+        double Fmag = 6.0; //magnitude of force
         double Fdes[n];
 
         if(input == 1)
             {   
-                cout<< "Pull Apart" << endl;
-                b << 10.,1.,10.,1.;
+                cout<< "Pull Apart in x" << endl;
+                b << 100.,1.,100.,1.;
                 Fdes[0] = -dx12/dist * Fmag;
-                Fdes[1] = -dy12/dist * Fmag;
+                Fdes[1] = 0.0;  //-dy12/dist * Fmag;
                 Fdes[2] = dx12/dist * Fmag;
-                Fdes[3] = dy12/dist * Fmag;
+                Fdes[3] = 0.0; //dy12/dist * Fmag;
 
             }
             else if (input == 2)
             {
-                cout << "Push Together" << endl;
-                b << 1.,10.,1.,10.;
+                cout << "Push Together in x" << endl;
+                b << 1.,100.,1.,100.;
                 Fdes[0] = dx12/dist * Fmag * 2;
-                Fdes[1] = dy12/dist * Fmag * 2;
+                Fdes[1] = 0; // dy12/dist * Fmag * 2;
                 Fdes[2] = -dx12/dist * Fmag * 2;
-                Fdes[3] = -dy12/dist * Fmag * 2;
+                Fdes[3] = 0; // -dy12/dist * Fmag * 2;
 
             }
             else if (input == 3)
             {
                 cout << "Toward y-axis" << endl;
-                b << 10.,0.,10.,0; // if x>0, Fdes = -Fmag, 
+                b << 100.,0.,100.,0; // if x>0, Fdes = -Fmag, 
                 Fdes[0] = copysign(Fmag,mag1_actual.position.x) * (-1);
                 Fdes[1] = 0.;
                 Fdes[2] = copysign(Fmag,mag2_actual.position.x) * (-1);
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
             else if (input == 4)
             {
                 cout << "Toward x-axis" << endl;
-                b << 10.,0.,10.,0; // if x>0, Fdes = -Fmag, 
+                b << 100.,0.,100.,0; // if x>0, Fdes = -Fmag, 
                 Fdes[1] = copysign(Fmag,mag1_actual.position.y) * (-1);
                 Fdes[0] = 0.;
                 Fdes[3] = copysign(Fmag,mag2_actual.position.y) * (-1);
@@ -167,11 +167,11 @@ int main(int argc, char **argv)
             else
             {
                 cout << "Coils Off" << endl;
-                b << 0.,0.,0.,0.;
-                Fdes[0] = 0.001;
-                Fdes[1] = 0.001;
-                Fdes[2] = 0.001;
-                Fdes[3] = 0.001;
+                b << 10.,10.,10.,10.;
+                Fdes[0] = 0.;
+                Fdes[1] = 0.;
+                Fdes[2] = 0.;
+                Fdes[3] = 0.;
             }
 
         cout << "Fdes: " << Fdes[0] << ", " << Fdes[1] << ", " << Fdes[2] << ", " << Fdes[3] << endl;
@@ -244,7 +244,9 @@ int main(int argc, char **argv)
         solversoln_msg.error = vector<double> (error.data(),error.data() + error.rows() * error.cols());
         cout << "info: " << info << endl;
         //  add notion of error to detemine if solution should be published
-        if(info==2) // || info == 1)
+        double errorsum = error[0] + error[1] + error[2] + error[3];
+        cout << "sum error: " << errorsum << endl;
+        if(errorsum < 0.00001) // || info == 1)
         {
             //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
             VectorXd current(4);
@@ -292,7 +294,7 @@ int main(int argc, char **argv)
 
         //wait for a second a set to 0:
         r.sleep();
-
+        /*
         roboclawCmdDesired.header.stamp = ros::Time::now();
         roboclawCmdDesired.m1 = int(0);
         roboclawCmdDesired.m2 = int(0);
@@ -300,7 +302,7 @@ int main(int argc, char **argv)
         roboclawCmdDesired.m4 = int(0);
         // publish pwm commands to roboclawCmdDesired
         roboCmdDes_pub.publish(roboclawCmdDesired);
-
+        */
         //ros::spinOnce();
     }
     return 0;
