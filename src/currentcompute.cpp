@@ -34,6 +34,12 @@ CoilFunctor2::CoilFunctor2(Coil coil, Magnet magnet) : Functor<double>(4,4) {
         Mymat2 = magnet.Mymat2;
 		Bmat = magnet.Bmat;
 		Bmat2 = magnet.Bmat2;   
+        Dxmat = magnet.Dxmat;
+        Dymat = magnet.Dymat;
+        Dxmat2 = magnet.Dxmat2;
+        Dymat2 = magnet.Dymat2;
+
+        Bearth << -0.04,0.;
     }
 
 int CoilFunctor2::operator()(const VectorXd &c, VectorXd &fvec)
@@ -42,16 +48,17 @@ int CoilFunctor2::operator()(const VectorXd &c, VectorXd &fvec)
 	assert(fvec.size()==4);
     
     // compute B'B
-    double BtB1 = pow(c.transpose() * Bmat.transpose() * Bmat * c,-0.5);
-    double BtB2 = pow(c.transpose() * Bmat2.transpose() * Bmat2 * c,-0.5);
+    VectorXd Btotal = Bmat * c + Bearth;
+    double Btotalmag = Btotal.norm();
+    VectorXd munit = Btotal / Btotalmag;
+    fvec[0] = gamma * munit.transpose() * Dxmat * c - Fx;
+    fvec[1] = gamma * munit.transpose() * Dymat * c - Fy;
 
-    // force constraints
-
-    fvec[0] = gamma * BtB1 * c.transpose() * Mxmat * c - Fx; // pow(c.transpose() * BtB1 * c, -0.5);// - Fx;
-    fvec[1] = gamma * BtB1 * c.transpose() * Mymat * c - Fy;
-    fvec[2] = gamma * BtB2 * c.transpose() * Mxmat2 * c - Fx2;
-    fvec[3] = gamma * BtB2 * c.transpose() * Mymat2 * c - Fy2;
-    
+    VectorXd Btotal2 = Bmat2 * c + Bearth;
+    double Btotalmag2 = Btotal2.norm();
+    VectorXd munit2 = Btotal2 / Btotalmag2;
+    fvec[2] = gamma * munit2.transpose() * Dxmat2 * c - Fx2;
+    fvec[3] = gamma * munit2.transpose() * Dymat2 * c - Fy2;    
     //cout << "operator: " << fvec.transpose() << endl;
     //cout << "c: " << c.transpose() << endl;
     return 0;
@@ -77,21 +84,28 @@ int CoilFunctor2::df(const VectorXd &c, MatrixXd &fjac)
         		// ctemp = c[i] + di/2
         		ctemp[i] = c[i] + di/2*pow(-1.0,lowhi);
         		//std::cout << "ctemp: " << ctemp.transpose() << endl;
-        		BtB1 = pow(ctemp.transpose() * Bmat.transpose() * Bmat * ctemp,-0.5);
-        		BtB2 = pow(ctemp.transpose() * Bmat2.transpose() * Bmat2 * ctemp,-0.5);
+        		VectorXd Btotal = Bmat * c + Bearth;
+                double Btotalmag = Btotal.norm();
+                VectorXd munit = Btotal / Btotalmag;
+                
+                
+                VectorXd Btotal2 = Bmat2 * c + Bearth;
+                double Btotalmag2 = Btotal2.norm();
+                VectorXd munit2 = Btotal2 / Btotalmag2;
+
 
         		if(lowhi==1) {
-        			fjac(0,i) = -gamma * BtB1 * ctemp.transpose() * Mxmat * ctemp;
-        			fjac(1,i) = -gamma * BtB1 * ctemp.transpose() * Mymat * ctemp;
-					fjac(2,i) = -gamma * BtB2 * ctemp.transpose() * Mxmat2 * ctemp;
-					fjac(3,i) = -gamma * BtB2 * ctemp.transpose() * Mymat2 * ctemp;        			
+        			fjac(0,i) = -gamma * munit.transpose() * Dxmat * ctemp;
+        			fjac(1,i) = -gamma * munit.transpose() * Dymat * ctemp;
+					fjac(2,i) = -gamma * munit2.transpose() * Dxmat2 * ctemp;
+					fjac(3,i) = -gamma * munit2.transpose() * Dymat2 * ctemp;
         		}
 
         		else{
-        			fjac(0,i) += gamma * BtB1 * ctemp.transpose() * Mxmat * ctemp;
-        			fjac(1,i) += gamma * BtB1 * ctemp.transpose() * Mymat * ctemp;
-        			fjac(2,i) += gamma * BtB2 * ctemp.transpose() * Mxmat2 * ctemp;
-					fjac(3,i) += gamma * BtB2 * ctemp.transpose() * Mymat2 * ctemp;        			
+        			fjac(0,i) += gamma * munit.transpose() * Dxmat * ctemp;
+        			fjac(1,i) += gamma * munit.transpose() * Dymat * ctemp;
+        			fjac(2,i) += gamma * munit2.transpose() * Dxmat2 * ctemp;
+					fjac(3,i) += gamma * munit2.transpose() * Dymat2 * ctemp;
         			fjac(0,i) *= 1/di;
 					fjac(1,i) *= 1/di;
 					fjac(2,i) *= 1/di;
@@ -126,7 +140,7 @@ CoilFunctor::CoilFunctor(Coil coil, Magnet magnet) : Functor<double>(6,6) {
         Dxmat = magnet.Dxmat;
         Dymat = magnet.Dymat;
         Bmat = magnet.Bmat;
-        Bearth << -0.06,0.;
+        Bearth << -0.04,0.;
         //Bearth << -0.06, 0.;
 
       }

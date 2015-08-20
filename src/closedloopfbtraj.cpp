@@ -16,7 +16,7 @@ Trajectory traj;
 
 plane_camera_magnet::PositionCommand actual;
 int numrobot;
-static visualization_msgs::Marker goalvis, actualvis;
+static visualization_msgs::Marker goalvis, actualvis, fdesvis;
 ros::Publisher actualvis_pub;
 //static visualization_msgs::Marker kfpoints, kfline_strip, kfline_list, rawpoints;
 
@@ -35,12 +35,12 @@ void xyFilteredcallback(const plane_camera_magnet::xyFiltered& data)
     }
     //visualization:
     actualvis.header.frame_id = "/camera_frame";
-    actualvis.header.stamp = ros::Time::now();
+    actualvis.header.stamp =  ros::Time::now();
     actualvis.ns = "closedloopfbtraj";
     actualvis.action = visualization_msgs::Marker::ADD;
     // rotation of frame in quaternions
     actualvis.pose.orientation.x = actualvis.pose.orientation.y = actualvis.pose.orientation.z =0.0;
-    actualvis.pose.orientation.w = 1.0;
+    actualvis.pose.orientation.w =fdesvis.pose.orientation.w = 1.0;
     actualvis.type = visualization_msgs::Marker::POINTS;
 
     actualvis.scale.x = actualvis.scale.y = 0.2;
@@ -91,22 +91,27 @@ int main(int argc, char **argv)
     plane_camera_magnet::nonlinearsolversoln solversoln_msg;
 
     //visualization:
-    goalvis.header.frame_id = "/camera_frame";
-    goalvis.header.stamp = ros::Time::now();
-    goalvis.ns = "closedloopfbtraj";
-    goalvis.action = visualization_msgs::Marker::ADD;
+    goalvis.header.frame_id = fdesvis.header.frame_id ="/camera_frame";
+    goalvis.header.stamp = fdesvis.header.stamp = ros::Time::now();
+    goalvis.ns = fdesvis.ns = "closedloopfbpoint2mag";
+    goalvis.action = fdesvis.action = visualization_msgs::Marker::ADD;
     // rotation of frame in quaternions
     goalvis.pose.orientation.x = goalvis.pose.orientation.y = goalvis.pose.orientation.z = 0.0;
-    goalvis.pose.orientation.w  = 1.0;
-
-    goalvis.type = visualization_msgs::Marker::POINTS;
-
-    goalvis.scale.x = goalvis.scale.y = 0.2;
-
+    goalvis.pose.orientation.w  = fdesvis.pose.orientation.w = 1.0;
+    goalvis.type = visualization_msgs::Marker::SPHERE_LIST;
+    goalvis.scale.x = goalvis.scale.y = 0.4;
     goalvis.color.r = 1.0f;
     goalvis.color.a = 1.0;
+    goalvis.points.resize(2);
+    goalvis.points[0] = goal.position;
+    //goalvis.points[1] = goal2.position;
 
+    fdesvis.id = 2;
+    fdesvis.type = visualization_msgs::Marker::LINE_LIST;
+    fdesvis.scale.x = 0.1;
 
+    fdesvis.color.b = 1.0f;
+    fdesvis.color.a = 1.0;
 
     //Setup publisher:
     ros::Publisher roboCmdDes_pub = nh.advertise<plane_camera_magnet::roboclawCmd>("roboclawcmddesired",1); // always publish newest command
@@ -116,7 +121,8 @@ int main(int argc, char **argv)
     actualvis_pub = nh.advertise<visualization_msgs::Marker>("vis_actual", 10);
 
     //Setup subscriber
-    ros::Subscriber xyFiltered_sub_ = nh.subscribe("/kf_pose/magnetactual",1, xyFilteredcallback);
+    //ros::Subscriber xyFiltered_sub_ = nh.subscribe("/kf_pose/magnetactual",1, xyFilteredcallback);
+    ros::Subscriber xyFiltered_sub_ = nh.subscribe("/kfpose_mag1/magnetactual",1, xyFilteredcallback);
 
     // define structs Coil and Magnet to be used in solver:
     Coil coil;
@@ -148,7 +154,17 @@ int main(int argc, char **argv)
     {
         // loop until end of traj
         //traj.UpdateGoal(goal);
-        traj.UpdateGoaldx(actual,goal);
+
+        // if goal updated, set integrator error to 0:
+        int updateflag;
+        updateflag = traj.UpdateGoaldx(actual,goal);
+        if (updateflag == 1)
+        {
+            cout << "Next waypoint!" << endl;
+            integrateerror[0] = 0.;
+            integrateerror[1] = 0.;
+
+        }
 
         //cout << "GOAL: X: " << goal.position.x << ", " << goal.position.y << ", " << goal.velocity.x << ", " << goal.velocity.y << endl;
         goalvis.points.resize(1);
@@ -164,8 +180,17 @@ int main(int argc, char **argv)
         // compute F desired
         integrateerror[0] += (goal.position.x - actual.position.x)/freq;
         integrateerror[1] += (goal.position.y - actual.position.y)/freq;
-        cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
-
+        //cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
+        double maxinterror = 100;
+        for(int erridx = 0; erridx < 2; erridx++)
+            {
+                if(abs(integrateerror[erridx]) > maxinterror)
+                {
+                    integrateerror[erridx] = maxinterror * integrateerror[erridx]/abs(integrateerror[erridx]);
+                }
+            }
+        //cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
+        ROS_INFO_STREAM_THROTTLE(0.5,"integrateerror: " << integrateerror[0] <<", " << integrateerror[1]);
 
         // compute F desired
         double Fdes[2];
@@ -174,7 +199,20 @@ int main(int argc, char **argv)
         Fdes[0] = goal.acceleration.x * mass + kx * (goal.position.x - actual.position.x) + kv * (goal.position.x - actual.velocity.x) + ki * integrateerror[0];
         Fdes[1] = goal.acceleration.y * mass + kx * (goal.position.y - actual.position.y) + kv * (goal.position.y - actual.velocity.y) + ki * integrateerror[1];
 
+        //cout << "F: " << Fdes[0] << ", " << Fdes[1] << endl;
+        geometry_msgs::Point fdespoint1;
+        fdespoint1.x = actual.position.x + Fdes[0];
+        fdespoint1.y = actual.position.y + Fdes[1];
+        fdespoint1.z = 0;
+        //fdespoint2.x = mag2_actual.position.x + Fdes[2];
+        //fdespoint2.y = mag2_actual.position.y + Fdes[3];
+        //fdespoint2.z = 0;
 
+        //cout << "F: " << Fdes[0] << ", " << Fdes[1] << endl;
+        //update fdes
+        fdesvis.points.resize(4);
+        fdesvis.points[0] = actual.position;
+        fdesvis.points[1] = fdespoint1;
         //cout << "F: " << Fdes[0] << ", " << Fdes[1] << endl;
 
         // compute currents to send to roboclaw using nonlinear solver.
@@ -185,6 +223,9 @@ int main(int argc, char **argv)
         magnet1.Fy = Fdes[1];
         magnet1.Mxmat = Mx(magnet1.x,magnet1.y,coil.R,coil.d);
         magnet1.Mymat = My(magnet1.x,magnet1.y,coil.R,coil.d);
+        magnet1.Dxmat = Dx(magnet1.x,magnet1.y,coil.R,coil.d);
+        magnet1.Dymat = Dy(magnet1.x,magnet1.y,coil.R,coil.d);
+        magnet1.Bmat = computeBmat(magnet1.x,magnet1.y,coil.R,coil.d);
 
         //solve:
         CoilFunctor functor(coil, magnet1); // functor( ) add arguments here.
@@ -207,17 +248,18 @@ int main(int argc, char **argv)
 
         solversoln_msg.Fdes = vector<double> (Fdes,Fdes + 2);
         
-        // error not assigned yet.
+        VectorXd error(6);
+        functor.operator()(b,error);
+        //cout << "error: " << error.transpose() << endl;
+        solversoln_msg.error = vector<double> (error.data(),error.data() + error.rows() * error.cols());
 
-        if(info==2) // || info == 1)
+        //  add notion of error to detemine if solution should be published
+        double errorsum = pow(error[0]*error[0] + error[1]*error[1],0.5); // sum only the force
+        // error not assigned yet.
+        //cout << "errorsum: " << errorsum << endl;
+        if(errorsum < 0.00001) // || info == 1)
         {
-        //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
-        VectorXd current(4);
-        VectorXd c = b.head(4);
-        MatrixXd Bmat = computeBmat(magnet1.x,magnet1.y,coil.R,coil.d);
-        current = c * pow(c.transpose()*Bmat.transpose()*Bmat*c,0.5);
-        //cout << "b: " << b.transpose() << endl;
-        //cout << "current: \n " << current << endl;
+        
         vector<double> btemp;
         vector<double> currtemp;
 
@@ -226,23 +268,22 @@ int main(int argc, char **argv)
             btemp.push_back(b[i]);
             if(i<4)
             {
-                currtemp.push_back(current[i]); 
+                currtemp.push_back(b[i]); 
             }
         }
         //solversoln_msg.solnvec = vector<double> (btemp,btemp + 6);
         //solversoln_msg.current = vector<double> (currtemp,currtemp + 4);
 
         solversoln_msg.solnvec = btemp;
-        solversoln_msg.current = currtemp;
+        solversoln_msg.current = btemp;
 
         roboclawCmdDesired.header.stamp = ros::Time::now();
-        roboclawCmdDesired.m1 = int(current[0]);
-        roboclawCmdDesired.m2 = int(current[1]);
-        roboclawCmdDesired.m3 = int(current[2]);
-        roboclawCmdDesired.m4 = int(current[3]);
+        roboclawCmdDesired.m1 = int(btemp.at(0));
+        roboclawCmdDesired.m2 = int(btemp.at(1));
+        roboclawCmdDesired.m3 = int(btemp.at(2));
+        roboclawCmdDesired.m4 = int(btemp.at(3));
 
         // publish pwm commands to roboclawCmdDesired
-        roboCmdDes_pub.publish(roboclawCmdDesired);
         }
         else
         {
@@ -252,10 +293,15 @@ int main(int argc, char **argv)
             // test for large coil 3:
             //b[2] = 1000;
             cout << "b: " << b << endl;
-
+            roboclawCmdDesired.header.stamp = ros::Time::now();
+            roboclawCmdDesired.m1 = int(0);
+            roboclawCmdDesired.m2 = int(0);
+            roboclawCmdDesired.m3 = int(0);
+            roboclawCmdDesired.m4 = int(0);
         }
-
+        roboCmdDes_pub.publish(roboclawCmdDesired);
         solversoln_pub.publish(solversoln_msg);
+        goalvis_pub.publish(fdesvis);
         goalvis_pub.publish(goalvis);
         ros::spinOnce();
         loop_rate.sleep();

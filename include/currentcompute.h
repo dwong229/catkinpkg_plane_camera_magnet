@@ -51,6 +51,8 @@ struct Magnet{
   MatrixXd Bmat2;
   MatrixXd Dxmat;
   MatrixXd Dymat;
+  MatrixXd Dxmat2;
+  MatrixXd Dymat2;
 };
 
 //Generic Functor
@@ -100,8 +102,8 @@ struct CoilFunctor2 : Functor<double>
 
   double d, R, gamma;
   double Fx, Fy, x, y, x2, y2, Fx2, Fy2;
-  MatrixXd Mxmat, Mymat, Mxmat2, Mymat2, Bmat, Bmat2; //add Dx Dy 
-  
+  MatrixXd Mxmat, Mymat, Mxmat2, Mymat2, Bmat, Bmat2, Dxmat, Dymat, Dxmat2, Dymat2; 
+  Vector2d Bearth;
 
   int operator()(const VectorXd&, VectorXd&);
   int df(const VectorXd&, MatrixXd&);

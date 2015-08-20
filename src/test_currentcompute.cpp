@@ -6,7 +6,7 @@
 int main(int argc, char **argv)
 {
    //One Magnet
-   if(1){
+   if(0){
    //ros::init(argc, argv ,"current");
    //ros::start();
    const int n =6; // 4I , 2 lambda
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
    //cout << "Time to compute: " << dt << "secs" << endl; //timing */
    }
 
-   if(0)
+   if(1)
    {
    // 2 magnet 
    const int n =4; // 4I 
@@ -82,15 +82,15 @@ int main(int argc, char **argv)
    coil.R = 8900;
    magnet2.gamma = 6500;
    // xnow
-   magnet2.x = -10.0;
+   magnet2.x = 0.0;
    magnet2.y = 0.0;
    magnet2.x2 = 10.0;
    magnet2.y2 = 0.0;
    //fdes
-   magnet2.Fx = 1.0;//0.0283;
+   magnet2.Fx = 0.0;//0.0283;
    magnet2.Fy = 0.0;
-   magnet2.Fx2 = -1.0;//0.0283;
-   magnet2.Fy2 = 0.0;
+   magnet2.Fx2 = 0.0;//0.0283;
+   magnet2.Fy2 = 5.0;
    
    magnet2.Mxmat = Mx(magnet2.x,magnet2.y,coil.R,coil.d);
    magnet2.Mymat = My(magnet2.x,magnet2.y,coil.R,coil.d);
@@ -100,6 +100,10 @@ int main(int argc, char **argv)
 
    magnet2.Bmat  = computeBmat(magnet2.x,magnet2.y,coil.R,coil.d);
    magnet2.Bmat2 = computeBmat(magnet2.x2,magnet2.y2,coil.R,coil.d);
+   magnet2.Dxmat = Dx(magnet2.x,magnet2.y,coil.R,coil.d);
+   magnet2.Dymat = Dy(magnet2.x,magnet2.y,coil.R,coil.d);
+   magnet2.Dxmat2 = Dx(magnet2.x2,magnet2.y2,coil.R,coil.d);
+   magnet2.Dymat2 = Dy(magnet2.x2,magnet2.y2,coil.R,coil.d);
 
    CoilFunctor2 functor(coil, magnet2); // functor( ) add arguments here.
    //CoilFunctor2 functor2(coil, magnet1);
@@ -117,7 +121,7 @@ int main(int argc, char **argv)
    //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
    VectorXd current(4);
    current = b;
-   cout << "current: \n " << current << endl;
+   cout << "current: \n " << current.transpose() << endl;
 
    VectorXd error(4);
    functor.operator()(b,error);

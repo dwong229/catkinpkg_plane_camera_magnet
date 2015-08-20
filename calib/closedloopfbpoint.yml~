@@ -3,7 +3,7 @@ xgoal: 0.0
 ygoal: 0.0
 kx: 2.0
 kv: 0.
-ki: 0.02
+ki: 0.2
 xgoal2: -10.0
 ygoal2: 0.0
 kx2: 0.2

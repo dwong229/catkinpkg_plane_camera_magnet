@@ -1,5 +1,8 @@
 #include <ros/ros.h>
 #include <iostream>
+#include <vector>
+#include <numeric>
+#include <functional>
 #include <plane_camera_magnet/PositionCommand.h>
 #include <plane_camera_magnet/roboclawCmd.h>
 #include <plane_camera_magnet/xyFiltered.h>
@@ -15,7 +18,12 @@ using namespace std;
 plane_camera_magnet::PositionCommand actual;
 int numrobot;
 bool newmsg;
-static visualization_msgs::Marker kfpoints, kfline_strip, kfline_list, rawpoints, fdesvis;
+static visualization_msgs::Marker kfpoints, kfline_strip, kfline_list, rawpoints, fdesvis, goalvis;
+
+static bool abs_compare(int a, int b)
+{
+    return (std::abs(a) < std::abs(b));
+}
 
 void xyFilteredcallback(const plane_camera_magnet::xyFiltered& data)
 {
@@ -58,8 +66,8 @@ int main(int argc, char **argv)
     //Setup publisher:
     ros::Publisher roboCmdDes_pub = nh.advertise<plane_camera_magnet::roboclawCmd>("roboclawcmddesired",1); // always publish newest command
     ros::Publisher solversoln_pub = nh.advertise<plane_camera_magnet::nonlinearsolversoln>("nonlinearsolversoln",1); // always publish newest command
+    ros::Publisher goalvis_pub = nh.advertise<visualization_msgs::Marker>("vis_goal", 10);
 
-    //ros::Subscriber xyFiltered_sub_ = nh.subscribe("/kf_pose/magnetactual",1, xyFilteredcallback);
     ros::Subscriber xyFiltered_sub_ = nh.subscribe("/kfpose_mag1/magnetactual",1, xyFilteredcallback);
 
     // define structs Coil and Magnet to be used in solver:
@@ -76,22 +84,50 @@ int main(int argc, char **argv)
     goal.acceleration.x = 0;
     goal.acceleration.y = 0;
     
+    //visualization:
+    // publish goals positions once:
+    goalvis.header.frame_id = fdesvis.header.frame_id ="/camera_frame";
+    goalvis.header.stamp = fdesvis.header.stamp = ros::Time::now();
+    goalvis.ns = fdesvis.ns = "closedloopfbpoint2mag";
+    goalvis.action = fdesvis.action = visualization_msgs::Marker::ADD;
+    // rotation of frame in quaternions
+    goalvis.pose.orientation.x = goalvis.pose.orientation.y = goalvis.pose.orientation.z = 0.0;
+    goalvis.pose.orientation.w  = fdesvis.pose.orientation.w = 1.0;
+    goalvis.type = visualization_msgs::Marker::SPHERE_LIST;
+    goalvis.scale.x = goalvis.scale.y = 0.4;
+    goalvis.color.r = 1.0f;
+    goalvis.color.a = 1.0;
+    goalvis.points.resize(2);
+    goalvis.points[0] = goal.position;
+    //goalvis.points[1] = goal2.position;
+
+    fdesvis.id = 2;
+    fdesvis.type = visualization_msgs::Marker::LINE_LIST;
+    fdesvis.scale.x = 0.1;
+
+    fdesvis.color.b = 1.0f;
+    fdesvis.color.a = 1.0;
+
     const int n =6; // 4I , 2 lambda
     int info;
     VectorXd b(n);
     //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
     //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
-    b << 1., 2., 1., 4., -107., 0.; // F = [0.0283, 0]
+    b << -10., -2.7, 16., 4., -107., 0.; // F = [0.0283, 0]
     double freq = 100;
     ros::Rate loop_rate(freq);
 
     
     //cout << size.traj() << endl;
     int count = 0;
+    
+    int errorhistorylength = 1000;
+    vector<double> errorx, errory;
     double integrateerror[2];
+
     integrateerror[0] = 0;
     integrateerror[1] = 0;
-
+    
     while(ros::ok())
     {
         // take in position of robot
@@ -102,16 +138,52 @@ int main(int argc, char **argv)
         //double mass = 1.;
 
         // compute F desired
-        //integrateerror[0] += (goal.position.x - actual.position.x)/freq;
-        //integrateerror[1] += (goal.position.y - actual.position.y)/freq;
-        //cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
+        errorx.push_back((goal.position.x - actual.position.x)/freq);
+        errory.push_back((goal.position.y - actual.position.y)/freq);
+        //ROS_INFO_STREAM_THROTTLE(0.5,"errorx: " << errorx);
+        if(errorx.size()>errorhistorylength)
+        {
+            errorx.erase(errorx.begin(),errorx.begin()+1);
+            errory.erase(errory.begin(),errory.begin()+1);
+        }
+        //cout << "size of error: " << errorx.size() << endl;
+        //cout << errorx.at(0) << " , " << errorx.at(1) << endl;
+        integrateerror[0] = std::accumulate(errorx.begin(),errorx.end(),0.0);
+        integrateerror[1] = std::accumulate(errory.begin(),errory.end(),0.0);
+        ROS_INFO_STREAM_THROTTLE(0.5,"integrateerror: " << integrateerror[0] <<", " << integrateerror[1]);
 
+
+        double maxinterror = 100;
+        for(int erridx = 0; erridx < 2; erridx++)
+            {
+                if(abs(integrateerror[erridx]) > maxinterror)
+                {
+                    integrateerror[erridx] = maxinterror * integrateerror[erridx]/abs(integrateerror[erridx]);
+                }
+            }
+        //cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
+        //ROS_INFO_STREAM_THROTTLE(0.5,"integrateerror: " << integrateerror[0] <<", " << integrateerror[1]);
         double Fdes[2];
 
         Fdes[0] = goal.acceleration.x * mass + kx * (goal.position.x - actual.position.x) + kv * (goal.position.x - actual.velocity.x) + ki * integrateerror[0];
         Fdes[1] = goal.acceleration.y * mass + kx * (goal.position.y - actual.position.y) + kv * (goal.position.y - actual.velocity.y) + ki * integrateerror[1];
 
         //cout << "F: " << Fdes[0] << ", " << Fdes[1] << endl;
+        geometry_msgs::Point fdespoint1;
+        fdespoint1.x = actual.position.x + Fdes[0];
+        fdespoint1.y = actual.position.y + Fdes[1];
+        fdespoint1.z = 0;
+        //fdespoint2.x = mag2_actual.position.x + Fdes[2];
+        //fdespoint2.y = mag2_actual.position.y + Fdes[3];
+        //fdespoint2.z = 0;
+
+        //cout << "F: " << Fdes[0] << ", " << Fdes[1] << endl;
+        //update fdes
+        fdesvis.points.resize(4);
+        fdesvis.points[0] = actual.position;
+        fdesvis.points[1] = fdespoint1;
+        //fdesvis.points[2] = mag2_actual.position;
+        //fdesvis.points[3] = fdespoint2;
 
         // compute currents to send to roboclaw using nonlinear solver.
         // update magnet variables:
@@ -121,10 +193,10 @@ int main(int argc, char **argv)
         magnet1.Fy = Fdes[1];
         magnet1.Mxmat = Mx(magnet1.x,magnet1.y,coil.R,coil.d);
         magnet1.Mymat = My(magnet1.x,magnet1.y,coil.R,coil.d);
-
-        //solve:
-        //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
-        
+        magnet1.Dxmat = Dx(magnet1.x,magnet1.y,coil.R,coil.d);
+        magnet1.Dymat = Dy(magnet1.x,magnet1.y,coil.R,coil.d);
+        magnet1.Bmat = computeBmat(magnet1.x,magnet1.y,coil.R,coil.d);
+                
         CoilFunctor functor(coil, magnet1); // functor( ) add arguments here.
         LevenbergMarquardt<CoilFunctor> lm(functor);
         info = lm.minimize(b);   
@@ -153,40 +225,44 @@ int main(int argc, char **argv)
 
         //  add notion of error to detemine if solution should be published
         double errorsum = pow(error[0]*error[0] + error[1]*error[1],0.5); // sum only the force
-        // error not assigned yet.
-        cout << "errorsum: " << errorsum << endl;
-        if(errorsum < 0.00001) // || info == 1)
-        {
-        //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
-        cout << "Set I" << endl;
-        VectorXd current(4);
-        VectorXd c = b.head(4);
-        MatrixXd Bmat = computeBmat(magnet1.x,magnet1.y,coil.R,coil.d);
-        current = c * pow(c.transpose()*Bmat.transpose()*Bmat*c,0.5);
-        //cout << "b: " << b.transpose() << endl;
-        //cout << "current: \n " << current << endl;
+        
         vector<double> btemp;
         vector<double> currtemp;
+        double maxcurr = abs(b[0]);
 
         for(int i = 0; i<6; i++)
         {
             btemp.push_back(b[i]);
             if(i<4)
             {
-                currtemp.push_back(current[i]); 
+                currtemp.push_back(b[i]); 
+                if(abs(b[i]) > maxcurr)
+                {
+                    maxcurr = abs(b[i]);
+                }
             }
         }
-        //solversoln_msg.solnvec = vector<double> (btemp,btemp + 6);
-        //solversoln_msg.current = vector<double> (currtemp,currtemp + 4);
+        //cout << b << endl;
+        //cout << "max: " << maxcurr << endl;
+        
+        if(errorsum < 0.00001 && maxcurr < 513. ) // || info == 1)
+        {
 
         solversoln_msg.solnvec = btemp;
-        solversoln_msg.current = currtemp;
+        //solversoln_msg.current = currtemp;
+        solversoln_msg.current = btemp;
 
         roboclawCmdDesired.header.stamp = ros::Time::now();
+        /*
         roboclawCmdDesired.m1 = int(current[0]);
         roboclawCmdDesired.m2 = int(current[1]);
         roboclawCmdDesired.m3 = int(current[2]);
         roboclawCmdDesired.m4 = int(current[3]);
+        */
+        roboclawCmdDesired.m1 = int(btemp.at(0));
+        roboclawCmdDesired.m2 = int(btemp.at(1));
+        roboclawCmdDesired.m3 = int(btemp.at(2));
+        roboclawCmdDesired.m4 = int(btemp.at(3));
 
         // publish pwm commands to roboclawCmdDesired
         roboCmdDes_pub.publish(roboclawCmdDesired);
@@ -203,6 +279,8 @@ int main(int argc, char **argv)
         }
 
         solversoln_pub.publish(solversoln_msg);
+        goalvis_pub.publish(goalvis);
+        goalvis_pub.publish(fdesvis);
         loop_rate.sleep();
         ros::spinOnce();
         ++count;

@@ -11,7 +11,7 @@ using namespace std;
 
 // Adapting trajectory.cpp from justinthomas https://github.com/justinthomas/hummingbird_demo/blob/master/src/trajectory.cpp
 
-Trajectory::Trajectory() : completed(false), loaded(false), xoff(0), yoff(0), trajidx(0), dx(0.5) {}
+Trajectory::Trajectory() : completed(false), loaded(false), xoff(0), yoff(0), trajidx(0), dx(1) {}
 
 void Trajectory::setOffsets(double x, double y) {
   xoff = x; yoff = y;
@@ -58,8 +58,10 @@ void Trajectory::UpdateGoal(plane_camera_magnet::PositionCommand &goal)
 }
 
 //update traj depending on where robot is.
-void Trajectory::UpdateGoaldx(plane_camera_magnet::PositionCommand &actual, plane_camera_magnet::PositionCommand &goal)
+int Trajectory::UpdateGoaldx(plane_camera_magnet::PositionCommand &actual, plane_camera_magnet::PositionCommand &goal)
 {
+  // RETURN 0 if no update, return 1 if updated.
+  int update = 0;
   //ros::Duration delta_time = ros::Time::now() - start_time_;
   //double traj_time = delta_time.toSec();
  
@@ -70,6 +72,7 @@ void Trajectory::UpdateGoaldx(plane_camera_magnet::PositionCommand &actual, plan
   if (distfromgoal < dx)
   { 
     trajidx++;
+    update = 1;
   }
 
   if (trajidx > traj_.size()-1)
@@ -103,6 +106,7 @@ void Trajectory::UpdateGoaldx(plane_camera_magnet::PositionCommand &actual, plan
   goal.kv[1] = traj_[i][4][4];
   goal.kv[2] = traj_[i][4][5];
   */
+  return update;
 }
 
 bool Trajectory::LoadTrajectory()
