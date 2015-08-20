@@ -1,5 +1,8 @@
 #include <ros/ros.h>
 #include <iostream>
+#include <vector>
+#include <numeric>
+#include <functional>
 #include <plane_camera_magnet/PositionCommand.h>
 #include <plane_camera_magnet/roboclawCmd.h>
 #include <plane_camera_magnet/xyFiltered.h>
@@ -143,6 +146,8 @@ int main(int argc, char **argv)
     //cout << size.traj() << endl;
     int count = 0;
     double integrateerror[4];
+    int errorhistorylength = 500;
+    vector<double> errorx, errory, errorx2, errory2;
     integrateerror[0] = integrateerror[1] = integrateerror[2] = integrateerror[3] = 0;
 
 
@@ -156,11 +161,27 @@ int main(int argc, char **argv)
         //double mass = 1.;
 
         // compute F desired
-        integrateerror[0] += (goal1.position.x - mag1_actual.position.x)/freq;
-        integrateerror[1] += (goal1.position.y - mag1_actual.position.y)/freq;
-        integrateerror[2] += (goal2.position.x - mag2_actual.position.x)/freq;
-        integrateerror[3] += (goal2.position.y - mag2_actual.position.y)/freq;
+        errorx.push_back((goal1.position.x - mag1_actual.position.x)/freq);
+        errory.push_back((goal1.position.y - mag1_actual.position.y)/freq);
+        errorx2.push_back((goal2.position.x - mag2_actual.position.x)/freq);
+        errory2.push_back((goal2.position.y - mag2_actual.position.y)/freq);
         //cout << "integrateerror: " << integrateerror[0] << endl;
+        
+        if(errorx.size()>errorhistorylength)
+        {
+            errorx.erase(errorx.begin(),errorx.begin()+1);
+            errory.erase(errory.begin(),errory.begin()+1);
+            errorx2.erase(errorx2.begin(),errorx2.begin()+1);
+            errory2.erase(errory2.begin(),errory2.begin()+1);
+               
+        }
+
+        integrateerror[0] = std::accumulate(errorx.begin(),errorx.end(),0.0);
+        integrateerror[1] = std::accumulate(errory.begin(),errory.end(),0.0);
+        integrateerror[2] = std::accumulate(errorx2.begin(),errorx2.end(),0.0);
+        integrateerror[3] = std::accumulate(errory2.begin(),errory2.end(),0.0);
+        
+
         double maxinterror = 100;
         for(int erridx = 0; erridx < 4; erridx++)
             {
@@ -169,6 +190,7 @@ int main(int argc, char **argv)
                     integrateerror[erridx] = maxinterror * integrateerror[erridx]/abs(integrateerror[erridx]);
                 }
             }
+        ROS_INFO_STREAM_THROTTLE(0.5,"integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << ", " << integrateerror[2] << ", " << integrateerror[3] );
 
         double Fdes[n];
 
@@ -202,6 +224,8 @@ int main(int argc, char **argv)
         magnet.Mxmat = Mx(magnet.x,magnet.y,coil.R,coil.d);
         magnet.Mymat = My(magnet.x,magnet.y,coil.R,coil.d);
         magnet.Bmat = computeBmat(magnet.x,magnet.y,coil.R,coil.d);
+        magnet.Dxmat = Dx(magnet.x,magnet.y,coil.R,coil.d);
+        magnet.Dymat = Dy(magnet.x,magnet.y,coil.R,coil.d);
 
         magnet.x2 = mag2_actual.position.x;
         magnet.y2 = mag2_actual.position.y;
@@ -210,6 +234,9 @@ int main(int argc, char **argv)
         magnet.Mxmat2 = Mx(magnet.x2,magnet.y2,coil.R,coil.d);
         magnet.Mymat2 = My(magnet.x2,magnet.y2,coil.R,coil.d);
         magnet.Bmat2 = computeBmat(magnet.x2,magnet.y2,coil.R,coil.d);
+        magnet.Dxmat2 = Dx(magnet.x2,magnet.y2,coil.R,coil.d);
+        magnet.Dymat2 = Dy(magnet.x2,magnet.y2,coil.R,coil.d);
+
         //solve:
         //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
         CoilFunctor2 functor(coil, magnet); // functor( ) add arguments here.
@@ -240,7 +267,19 @@ int main(int argc, char **argv)
         //  add notion of error to detemine if solution should be published
         double errorsum = error[0] + error[1] + error[2] + error[3];
         //cout << "sum error: " << errorsum << endl;
-        if(errorsum < 0.00001) // || info == 1)
+        
+        double maxcurr = abs(b[0]);
+
+        for(int i = 0; i<4; i++)
+        {
+            if(abs(b[i]) > maxcurr)
+            {
+                maxcurr = abs(b[i]);
+            }
+        }
+
+
+        if(errorsum < 0.00001 && maxcurr < 513. ) // || info == 1)
         {
             //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
             VectorXd current(4);
@@ -274,11 +313,11 @@ int main(int argc, char **argv)
         {
             // if no solution, random start b.
             cout << "re-init b" << endl;
-            b = VectorXd::Random(n)*100; // F = [0.0283, 0]
+            b = VectorXd::Random(4)*200; 
             //b << 1.,1.,1.,20.;
             // test for large coil 3:
             //b[2] = 1000;
-            cout << "b: " << b << endl;
+            //cout << "b: " << b << endl;
             roboclawCmdDesired.header.stamp = ros::Time::now();
             roboclawCmdDesired.m1 = 0;
             roboclawCmdDesired.m2 = 0;

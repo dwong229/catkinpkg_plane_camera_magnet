@@ -153,7 +153,7 @@ def talker(mval):
 def callback(desiredcmd):
     # unpack msg data
     mval = np.array([desiredcmd.m1, desiredcmd.m2, desiredcmd.m3, desiredcmd.m4])
-    print("Seq: ", desiredcmd.header.seq)
+    #print("Seq: ", desiredcmd.header.seq)
     #print ("Coil1: ", desiredcmd.m1)
     #print ("Coil2: ", desiredcmd.m2)
     #print ("Coil3: ", desiredcmd.m3)
