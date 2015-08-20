@@ -125,7 +125,10 @@ CoilFunctor::CoilFunctor(Coil coil, Magnet magnet) : Functor<double>(6,6) {
         Mymat = magnet.Mymat;
         Dxmat = magnet.Dxmat;
         Dymat = magnet.Dymat;
-        
+        Bmat = magnet.Bmat;
+        Bearth << -0.06,0.;
+        //Bearth << -0.06, 0.;
+
       }
 
 int CoilFunctor::operator()(const VectorXd &b, VectorXd &fvec)
@@ -144,9 +147,18 @@ int CoilFunctor::operator()(const VectorXd &b, VectorXd &fvec)
         c = b.head(4);
         lambda = b.tail(2);
 
+        // Considering Bearth:
+        
+        VectorXd Btotal = Bmat * c + Bearth;
+        double Btotalmag = Btotal.norm();
+        VectorXd munit = Btotal / Btotalmag;
+
+        //cout << Btotalmag << endl;
+        //cout << munit << endl;
+        //fvec << 0., 0., 0., 0., 0., 0.;
         // force constraints
-        fvec[0] = gamma * c.transpose() * Mxmat * c - Fx;
-        fvec[1] = gamma * c.transpose() * Mymat * c - Fy;
+        fvec[0] = gamma * munit.transpose() * Dxmat * c - Fx;
+        fvec[1] = gamma * munit.transpose() * Dymat * c - Fy;
 
         // current minimizing
         fvec[2] = c[0] + gamma * lambda[0] * Mxmat.row(0)*c + gamma * lambda[1] * Mymat.row(0)*c; 
@@ -154,6 +166,12 @@ int CoilFunctor::operator()(const VectorXd &b, VectorXd &fvec)
         fvec[4] = c[2] + gamma * lambda[0] * Mxmat.row(2)*c + gamma * lambda[1] * Mymat.row(2)*c;
         fvec[5] = c[3] + gamma * lambda[0] * Mxmat.row(3)*c + gamma * lambda[1] * Mymat.row(3)*c;
         
+        //fvec[2] = c[0] + gamma * lambda[0] * munit[0] * Dxmat.row(0)*c + gamma * lambda[1] *Dymat.row(0) * c;
+        //fvec[3] = c[1] + gamma * lambda[0] * Mxmat.row(1)*c + gamma * lambda[1] * Dymat.row(1)*c;
+        //fvec[4] = c[2] + gamma * lambda[0] * Mxmat.row(2)*c + gamma * lambda[1] * Mymat.row(2)*c;
+        //fvec[5] = c[3] + gamma * lambda[0] * Mxmat.row(3)*c + gamma * lambda[1] * Mymat.row(3)*c;
+        
+
         //cout << "operator: " << fvec.transpose() << endl;
         //cout << "b: " << b.transpose() << endl;
         return 0;
@@ -170,8 +188,8 @@ int CoilFunctor::df(const VectorXd &b, MatrixXd &fjac)
         lambda = b.tail(2);
 
         //fjac(equation#, derivative wrt b[i])
-        // Force equation derivatives 
-        for(int i=0; i<4; i++){
+        // Force equation derivatives exact for no Bearth:
+        /*for(int i=0; i<4; i++){
             fjac(0,i) = Mxmat.col(i).transpose() * c; 
             fjac(0,i) += Mxmat.row(i) * c;
             fjac(0,i) *= gamma;
@@ -180,7 +198,34 @@ int CoilFunctor::df(const VectorXd &b, MatrixXd &fjac)
             fjac(1,i) += Mymat.row(i) * c; 
             fjac(1,i) *= gamma;
         }
-              
+        */
+        // Compute fjac(0:1,0:3)
+        double di = 0.0001;
+        VectorXd ctemp, Btotal, munit; 
+        double Btotalmag; 
+        for(int i = 0; i<4;i++){
+            ctemp = c;
+            for(int lowhi = 1; lowhi < 3; lowhi++){
+                // compute lower bound first:
+                // ctemp = c[i] + di/2
+                ctemp[i] = c[i] + di/2*pow(-1.0,lowhi);
+                Btotal = Bmat * ctemp + Bearth;
+                Btotalmag = Btotal.norm();
+                VectorXd munit = Btotal / Btotalmag;
+
+                if(lowhi == 1) {
+                    fjac(0,i) = -gamma * munit.transpose() * Dxmat * ctemp;
+                    fjac(1,i) = -gamma * munit.transpose() * Dymat * ctemp;
+                }
+                else{
+                    fjac(0,i) += gamma * munit.transpose() * Dxmat * ctemp;
+                    fjac(1,i) += gamma * munit.transpose() * Dymat * ctemp;
+                    fjac(0,i) *= 1/di;
+                    fjac(1,i) *= 1/di;
+                }
+            }
+
+        }
 
         fjac(0,4) = 0.0;
         fjac(0,5) = 0.0;

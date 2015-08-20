@@ -13,7 +13,7 @@ int main(int argc, char **argv)
    int info;
    VectorXd b(n);
    //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
-   b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
+   b << -10, -2.7, 16, 2.7, 17, 0.; // F = [0.0283, 0]
    //b << .4,23,-16,-5.0,-500,-30000;
    
    Magnet magnet1;
@@ -21,21 +21,26 @@ int main(int argc, char **argv)
    coil.d = 57.5;
    coil.R = 8900;
    magnet1.x = 10.0;
-   magnet1.y = 0.0;
-   magnet1.Fx = 5.;//0.0283;
-   magnet1.Fy = 0.0;
+   magnet1.y = 1.0;
+   magnet1.Fx = -5.;//0.0283;
+   magnet1.Fy = 5.;
    magnet1.gamma = 6500;
 
    magnet1.Mxmat = Mx(magnet1.x,magnet1.y,coil.R,coil.d);
    //magnet1.Mxmat = Mx(10.0,0.0,coil.R,coil.d);
    magnet1.Mymat = My(magnet1.x,magnet1.y,coil.R,coil.d);
 
-   cout << "magnet1.Mxmat : " << endl << magnet1.Mxmat << endl;
+   magnet1.Dxmat = Dx(magnet1.x,magnet1.y,coil.R,coil.d);
+   magnet1.Dymat = Dy(magnet1.x,magnet1.y,coil.R,coil.d);
+   magnet1.Bmat = computeBmat(magnet1.x,magnet1.y,coil.R,coil.d);
+   //magnet1.Bearth << -0.06,0.0;
+
+   cout << "magnet1.Dx : " << endl << magnet1.Dxmat << endl;
+
+   cout << "magnet1.Dy : " << endl << magnet1.Dymat << endl;
    //ros::Time begin = ros::Time::now(); //begin time
 
    CoilFunctor functor(coil, magnet1); // functor( ) add arguments here.
-   //CoilFunctor2 functor2(coil, magnet1);
-
    LevenbergMarquardt<CoilFunctor> lm(functor);
    info = lm.minimize(b);
    //HybridNonLinearSolver<CoilFunctor> solver(functor);
@@ -45,12 +50,15 @@ int main(int argc, char **argv)
   // check return value
    cout << "info: " << info << endl;
 
-   //cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
-   VectorXd current(4);
-   VectorXd c = b.head(4);
-   MatrixXd Bmat = computeBmat(magnet1.x,magnet1.y,coil.R,coil.d);
-   current = c * pow(c.transpose()*Bmat.transpose()*Bmat*c,0.5);
-   cout << "current: \n " << current << endl;
+   cout << "soln: " << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
+   //VectorXd current(4);
+   //VectorXd c = b.head(4);
+   //MatrixXd Bmat = computeBmat(magnet1.x,magnet1.y,coil.R,coil.d);
+   //current = c * pow(c.transpose()*Bmat.transpose()*Bmat*c,0.5);
+   //cout << "current: \n " << current << endl;
+   VectorXd error(6);
+   functor.operator()(b,error);
+   cout << "Error: " << error.transpose() << endl;
 
    /* //timing
    ros::Time endtime = ros::Time::now();

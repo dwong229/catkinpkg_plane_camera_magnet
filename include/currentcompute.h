@@ -20,7 +20,6 @@ const double pi = 3.1415926535897;
 const double mu0 = 4*pi*pow(10,-7);
 
 // functiosn to help compute Matrices D,B,M:
-
 extern Eigen::MatrixXd Mx(double,double,double,double);
 extern Eigen::MatrixXd My(double,double,double,double);
 extern Eigen::MatrixXd computeBmat(double, double, double, double);
@@ -86,7 +85,8 @@ struct CoilFunctor : Functor<double>
     
     // declarations:
     double d, R, x, y, Fx, Fy, gamma;
-    MatrixXd Mxmat, Mymat; 
+    MatrixXd Mxmat, Mymat, Dxmat, Dymat, Bmat; 
+    Vector2d Bearth;
 
     int operator()(const VectorXd&, VectorXd&);
     int df(const VectorXd&, MatrixXd&);
@@ -100,8 +100,9 @@ struct CoilFunctor2 : Functor<double>
 
   double d, R, gamma;
   double Fx, Fy, x, y, x2, y2, Fx2, Fy2;
-  MatrixXd Mxmat, Mymat, Mxmat2, Mymat2, Bmat, Bmat2;
+  MatrixXd Mxmat, Mymat, Mxmat2, Mymat2, Bmat, Bmat2; //add Dx Dy 
   
+
   int operator()(const VectorXd&, VectorXd&);
   int df(const VectorXd&, MatrixXd&);
 
