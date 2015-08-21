@@ -25,6 +25,7 @@ class Trajectory
     bool LoadTrajectory();
     void UpdateGoal(plane_camera_magnet::PositionCommand&);
     int UpdateGoaldx(plane_camera_magnet::PositionCommand&, plane_camera_magnet::PositionCommand&);
+    double getdx();
 
     void set_start_time() {start_time_ = ros::Time::now(); completed = false;}
     void set_start_time(ros::Time time) {start_time_ = time; completed = false;}

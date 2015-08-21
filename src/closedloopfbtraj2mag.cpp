@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <trajectory.h>
 #include <iostream>
 #include <vector>
 #include <numeric>
@@ -12,6 +13,7 @@
 #include <visualization_msgs/Marker.h> //for rvis visualization
 
 using namespace std;
+Trajectory traj1, traj2;
 
 // User input a point and control to stay at that point.
 
@@ -55,7 +57,7 @@ void xyFilteredcallback2(const plane_camera_magnet::xyFiltered& data)
 int main(int argc, char **argv)
 {
 
-    ros::init(argc, argv, "closedloopfbpoint2mag");
+    ros::init(argc, argv, "closedloopfbtraj2mag");
     ros::NodeHandle nh("~");
 
     std::string param_filename;
@@ -72,6 +74,26 @@ int main(int argc, char **argv)
     double kx2 = (double)fscal["kx2"];
     double kv2 = (double)fscal["kv2"];
     double ki2 = (double)fscal["ki2"];
+
+    //trajectory setup:
+    // The trajectory filename
+    std::string traj_filename1, traj_filename2;
+    nh.param("traj_filename1", traj_filename1, std::string("traj2mag1.csv"));
+    traj1.set_filename(traj_filename1);
+    if (traj1.LoadTrajectory())
+      ROS_INFO("Trajectory loaded");
+    else
+      ROS_WARN("Trajectory could not be loaded.");
+
+    nh.param("traj_filename2", traj_filename2, std::string("traj2mag2.csv"));
+    traj2.set_filename(traj_filename2);
+    if (traj2.LoadTrajectory())
+      ROS_INFO("Trajectory loaded");
+    else
+      ROS_WARN("Trajectory could not be loaded.");   
+
+    double dx;
+    dx = traj1.getdx();
 
     plane_camera_magnet::PositionCommand goal1, goal2;
 
@@ -142,17 +164,40 @@ int main(int argc, char **argv)
     double freq = 100.;
     ros::Rate loop_rate(freq);
 
+    cout << "Press enter when ready to begin traj:" << endl;
+    cin.ignore(1);
+    // initialize time
+    traj1.set_start_time();
+    traj2.set_start_time();
+    traj1.UpdateGoaldx(mag1_actual,goal1);
+    traj2.UpdateGoaldx(mag2_actual,goal2);
     
     //cout << size.traj() << endl;
     int count = 0;
     double integrateerror[4];
     int errorhistorylength = 500;
     vector<double> errorx, errory, errorx2, errory2;
-    integrateerror[0] = integrateerror[1] = integrateerror[2] = integrateerror[3] = 0;
+    integrateerror[0] = integrateerror[1] = integrateerror[2] = integrateerror[3] = 0.;
 
-
-    while(ros::ok())
+    double distfromgoal1, distfromgoal2;
+    while(!traj1.isCompleted() && !traj2.isCompleted())
     {
+
+        // Check if both are near waypoint:
+        distfromgoal1 = pow(pow(goal1.position.x - mag1_actual.position.x,2) + pow(goal1.position.y - mag1_actual.position.y,2),0.5);
+        distfromgoal2 = pow(pow(goal2.position.x - mag2_actual.position.x,2) + pow(goal2.position.y - mag2_actual.position.y,2),0.5);
+        if(distfromgoal1 < dx && distfromgoal2 < dx)
+        {
+
+            traj1.UpdateGoaldx(mag1_actual,goal1);
+            traj2.UpdateGoaldx(mag2_actual,goal2);
+            cout << "Next waypoint!" << endl;
+            //erase errorx vector:
+            errorx.clear();
+            errory.clear();
+            errorx2.clear();
+            errory2.clear();
+        }
         // take in position of robot
         mag1_actual.acceleration.x = 0;
         mag1_actual.acceleration.y = 0;
@@ -334,6 +379,7 @@ int main(int argc, char **argv)
         goalvis_pub.publish(fdesvis);
 
         ros::spinOnce();
+        loop_rate.sleep();
         ++count;
     }
     return 0;

@@ -226,3 +226,7 @@ bool Trajectory::LoadTrajectory()
   loaded = true;
   return true;
 }
+double Trajectory::getdx()
+{
+  return dx;
+}
