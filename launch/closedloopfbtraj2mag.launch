@@ -1,0 +1,19 @@
+<launch>
+    <node name="closedloopfbtraj2mag"
+        pkg ="plane_camera_magnet"
+        type = "closedloopfbtraj2mag"
+        output ="screen"
+        launch-prefix = "gdb -ex run --args">
+        <param name="param_filename" value="/home/denise/catkin_ws/src/plane_camera_magnet/calib/closedloopfbpoint.yml"/>
+         <param name="traj_filename1" 
+         value="/home/mrsl-think/Dropbox/Magnetic Topography/Denise Magnetics Sandbox/rosexptfiles/traj2mag1.csv"/>
+         <param name="traj_filename2" 
+         value="/home/mrsl-think/Dropbox/Magnetic Topography/Denise Magnetics Sandbox/rosexptfiles/traj2mag2.csv"/>
+    </node>
+    <node name="roboclaw4listen_pub"
+        pkg ="plane_camera_magnet"
+        type = "roboclaw4listen_pub.py"
+        output = "screen">
+        <remap from="/closedloopfbpoint/roboclawcmddesired" to="/closedloopfbtraj/roboclawcmddesired"/>
+    </node>
+</launch>
