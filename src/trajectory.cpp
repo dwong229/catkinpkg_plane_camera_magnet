@@ -11,7 +11,7 @@ using namespace std;
 
 // Adapting trajectory.cpp from justinthomas https://github.com/justinthomas/hummingbird_demo/blob/master/src/trajectory.cpp
 
-Trajectory::Trajectory() : completed(false), loaded(false), xoff(0), yoff(0), trajidx(0), dx(1) {}
+Trajectory::Trajectory() : completed(false), loaded(false), xoff(0), yoff(0), trajidx(0), dx(2) {}
 
 void Trajectory::setOffsets(double x, double y) {
   xoff = x; yoff = y;

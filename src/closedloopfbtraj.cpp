@@ -1,6 +1,9 @@
 #include <ros/ros.h>
 #include <trajectory.h>
 #include <iostream>
+#include <vector>
+#include <numeric>
+#include <functional>
 #include <plane_camera_magnet/PositionCommand.h>
 #include <plane_camera_magnet/roboclawCmd.h>
 #include <plane_camera_magnet/xyFiltered.h>
@@ -136,7 +139,7 @@ int main(int argc, char **argv)
     VectorXd b(n);
     //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
     //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
-    b << 1., 2., 600., 4., 10700, 0.; // F = [0.0283, 0]
+    b << 1., 600., 1., 4., 10700, 0.; // F = [0.0283, 0]
     double freq = 100;
     ros::Rate loop_rate(freq);
 
@@ -146,10 +149,15 @@ int main(int argc, char **argv)
     traj.set_start_time();
     //cout << size.traj() << endl;
 
+    vector<double> errorx, errory;
     double integrateerror[2];
+    int errorhistorylength = 500;
     integrateerror[0] = 0;
     integrateerror[1] = 0;
 
+    ros::Duration(1.5).sleep();
+    ros::spinOnce();
+    
     while(!traj.isCompleted())
     {
         // loop until end of traj
@@ -161,8 +169,10 @@ int main(int argc, char **argv)
         if (updateflag == 1)
         {
             cout << "Next waypoint!" << endl;
-            integrateerror[0] = 0.;
-            integrateerror[1] = 0.;
+            //integrateerror[0] = 0.;
+            //integrateerror[1] = 0.;
+            errorx.clear();
+            errory.clear();
 
         }
 
@@ -175,13 +185,31 @@ int main(int argc, char **argv)
         actual.acceleration.x = 0;
         actual.acceleration.y = 0;
         double mass = 4*0.0000707;
-        //double mass = 1.;
 
-        // compute F desired
-        integrateerror[0] += (goal.position.x - actual.position.x)/freq;
-        integrateerror[1] += (goal.position.y - actual.position.y)/freq;
-        //cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
-        double maxinterror = 100;
+        errorx.push_back((goal.position.x - actual.position.x)/freq);
+        errory.push_back((goal.position.y - actual.position.y)/freq);
+        
+
+        int errorsize = errorx.size();
+        //cout << "Errorx: " << errorx.at(0) << endl;
+        //for(int i = 0; i< errorsize; i++)
+        
+
+        
+        if(errorx.size()>errorhistorylength)
+        {
+            errorx.erase(errorx.begin(),errorx.begin()+1);
+            errory.erase(errory.begin(),errory.begin()+1);
+            
+               
+        }
+
+        integrateerror[0] = std::accumulate(errorx.begin(),errorx.end(),0.0);
+        integrateerror[1] = std::accumulate(errory.begin(),errory.end(),0.0);
+        
+        
+
+        double maxinterror = 500;
         for(int erridx = 0; erridx < 2; erridx++)
             {
                 if(abs(integrateerror[erridx]) > maxinterror)
@@ -189,8 +217,8 @@ int main(int argc, char **argv)
                     integrateerror[erridx] = maxinterror * integrateerror[erridx]/abs(integrateerror[erridx]);
                 }
             }
-        //cout << "integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << endl;
         ROS_INFO_STREAM_THROTTLE(0.5,"integrateerror: " << integrateerror[0] <<", " << integrateerror[1]);
+
 
         // compute F desired
         double Fdes[2];

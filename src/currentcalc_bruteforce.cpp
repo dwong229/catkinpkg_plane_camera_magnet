@@ -3,18 +3,18 @@
 #include <stdio.h>
 #include "currentcompute.h"
 #include <fstream>
+#include <timers.h>
 
 int main(int argc, char **argv)
 {
+   ros::init(argc, argv, "lm_trial");
+   ros::start();
    // 2 magnet       
    const int n =4; // 4I 
    int info;
    VectorXd b(n);
    VectorXd binit(n);
-
-   //b << -10,20,10,10.0; // x: [10 10 0 0], F = [-20 20 0 0] matches matlab
-
-       
+      
    Magnet magnet2;
    Coil coil;
    coil.d = 57.5;
@@ -40,8 +40,21 @@ int main(int argc, char **argv)
    magnet2.Bmat  = computeBmat(magnet2.x,magnet2.y,coil.R,coil.d);
    magnet2.Bmat2 = computeBmat(magnet2.x2,magnet2.y2,coil.R,coil.d);
 
+   magnet2.Dxmat = Dx(magnet2.x,magnet2.y,coil.R,coil.d);
+   magnet2.Dymat = Dy(magnet2.x,magnet2.y,coil.R,coil.d);
+   magnet2.Dxmat2 = Dx(magnet2.x2,magnet2.y2,coil.R,coil.d);
+   magnet2.Dymat2 = Dy(magnet2.x2,magnet2.y2,coil.R,coil.d);
+
    CoilFunctor2 functor(coil, magnet2); // functor( ) add arguments here.
    //CoilFunctor2 functor2(coil, magnet1);
+
+   // {
+   // ScopedTime("this")
+   // int a = 3;
+   // a *=3;
+   // }
+   Timer tm;
+   tm.tic();
 
    LevenbergMarquardt<CoilFunctor2> lm(functor);
 
@@ -67,9 +80,14 @@ int main(int argc, char **argv)
             while(binit[3] < currmax)
             {
                b = binit;
-               cout << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
+               //cout << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << endl;
                datafile << b[0] << ", " << b[1] << ", " << b[2] << ", " << b[3] << "," ;        
+            
+               ros::Time begin = ros::Time::now(); //begin time
                info = lm.minimize(b);
+               ros::Time endtime = ros::Time::now();
+               double dt = (endtime - begin).toSec(); 
+               //cout << "Time to compute: " << dt << "secs" << endl; 
                //HybridNonLinearSolver<CoilFunctor> solver(functor);
                //info = solver.solve(b);
                //info = solver.hybrd1(b);
@@ -85,7 +103,7 @@ int main(int argc, char **argv)
                VectorXd error(4);
                functor.operator()(b,error);
                //datafile << error.transpose() << endl;
-               datafile << error[0] << ", " << error[1] << ", " << error[2] << ", " << error[3] << endl ;
+               datafile << error[0] << ", " << error[1] << ", " << error[2] << ", " << error[3] << ", " << dt << endl ;
                //vector<double> errorvec;
                vector<double> errorvec(error.data(),error.data() + error.rows() * error.cols());
                binit[3] += db;
@@ -104,6 +122,11 @@ int main(int argc, char **argv)
       binit[2] = currmin;
       binit[3] = currmin;
    }
+
+   ROS_INFO_STREAM("Total time: " << tm.toc() );
+   //timing
+   
+
    datafile.close();
 
    return 0;

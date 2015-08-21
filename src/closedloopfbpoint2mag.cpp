@@ -19,7 +19,6 @@ plane_camera_magnet::PositionCommand mag1_actual, mag2_actual;
 int numrobot;
 bool newmsg;
 static visualization_msgs::Marker goalvis, fdesvis;
-
 void xyFilteredcallback1(const plane_camera_magnet::xyFiltered& data)
 {
 
@@ -28,6 +27,7 @@ void xyFilteredcallback1(const plane_camera_magnet::xyFiltered& data)
     
     if(!data.xyWorldX.empty())
     {
+        //cout << "Update1 " <<endl;
         mag1_actual.position.x = double(data.xyWorldX.at(0));
         mag1_actual.position.y = double(data.xyWorldY.at(0));
         mag1_actual.velocity.x = double(data.xyWorldXdot.at(0));
@@ -43,6 +43,7 @@ void xyFilteredcallback2(const plane_camera_magnet::xyFiltered& data)
    // unpack subscribed values to vector of keypoints   
     if(!data.xyWorldX.empty())
     {
+        //cout << "Update2 " <<endl;
         mag2_actual.position.x = double(data.xyWorldX.at(0));
         mag2_actual.position.y = double(data.xyWorldY.at(0));
         mag2_actual.velocity.x = double(data.xyWorldXdot.at(0));
@@ -72,6 +73,8 @@ int main(int argc, char **argv)
     double kx2 = (double)fscal["kx2"];
     double kv2 = (double)fscal["kv2"];
     double ki2 = (double)fscal["ki2"];
+    
+    //newmsg = false;
 
     plane_camera_magnet::PositionCommand goal1, goal2;
 
@@ -81,7 +84,6 @@ int main(int argc, char **argv)
     ros::Publisher roboCmdDes_pub = nh.advertise<plane_camera_magnet::roboclawCmd>("roboclawcmddesired",1); // always publish newest command
     ros::Publisher solversoln_pub = nh.advertise<plane_camera_magnet::nonlinearsolversoln>("nonlinearsolversoln",1); // always publish newest command
     ros::Publisher goalvis_pub = nh.advertise<visualization_msgs::Marker>("vis_goal", 10);
-
 
     ros::Subscriber xyFiltered1_sub_ = nh.subscribe("/kfpose_mag1/magnetactual",1, xyFilteredcallback1);
     ros::Subscriber xyFiltered2_sub_ = nh.subscribe("/kfpose_mag2/magnetactual",1, xyFilteredcallback2);
@@ -138,7 +140,7 @@ int main(int argc, char **argv)
     //b << 0.004 * pow(10,-3),-0.5 * pow(10,-3),-0.1 * pow(10,-3) ,-0.03 * pow(10,-3),0.5,0.5;
     //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
     //b << 1., 2., 1., 4.; // F = [0.0283, 0]
-    b << 1.,1.,1.,20.;
+    b << 1.,1.,100.,1.;
     double freq = 100.;
     ros::Rate loop_rate(freq);
 
@@ -146,13 +148,23 @@ int main(int argc, char **argv)
     //cout << size.traj() << endl;
     int count = 0;
     double integrateerror[4];
-    int errorhistorylength = 500;
+    int errorhistorylength = 100000;
     vector<double> errorx, errory, errorx2, errory2;
+    errorx.clear();
+    errory.clear();
+    errorx2.clear();
+    errory2.clear();
     integrateerror[0] = integrateerror[1] = integrateerror[2] = integrateerror[3] = 0;
+
+    
+    ros::Duration(1.5).sleep();
+    ros::spinOnce();
 
 
     while(ros::ok())
-    {
+        //if(newmsg)
+        {
+        
         // take in position of robot
         mag1_actual.acceleration.x = 0;
         mag1_actual.acceleration.y = 0;
@@ -165,7 +177,13 @@ int main(int argc, char **argv)
         errory.push_back((goal1.position.y - mag1_actual.position.y)/freq);
         errorx2.push_back((goal2.position.x - mag2_actual.position.x)/freq);
         errory2.push_back((goal2.position.y - mag2_actual.position.y)/freq);
-        //cout << "integrateerror: " << integrateerror[0] << endl;
+        //cout << "goal1: " << goal1.position << endl;
+        //cout << "mag1: " << mag1_actual.position << endl;
+        int errorsize = errorx.size();
+        //cout << "Errorx: " << errorx.at(0) << endl;
+        //for(int i = 0; i< errorsize; i++)
+        
+
         
         if(errorx.size()>errorhistorylength)
         {
@@ -182,7 +200,7 @@ int main(int argc, char **argv)
         integrateerror[3] = std::accumulate(errory2.begin(),errory2.end(),0.0);
         
 
-        double maxinterror = 100;
+        double maxinterror = 500;
         for(int erridx = 0; erridx < 4; erridx++)
             {
                 if(abs(integrateerror[erridx]) > maxinterror)
@@ -190,7 +208,7 @@ int main(int argc, char **argv)
                     integrateerror[erridx] = maxinterror * integrateerror[erridx]/abs(integrateerror[erridx]);
                 }
             }
-        ROS_INFO_STREAM_THROTTLE(0.5,"integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << ", " << integrateerror[2] << ", " << integrateerror[3] );
+        ROS_INFO_STREAM_THROTTLE(0.1,"integrateerror: " << integrateerror[0] <<", " << integrateerror[1] << ", " << integrateerror[2] << ", " << integrateerror[3] );
 
         double Fdes[n];
 
@@ -313,7 +331,7 @@ int main(int argc, char **argv)
         {
             // if no solution, random start b.
             cout << "re-init b" << endl;
-            b = VectorXd::Random(4)*200; 
+            b = VectorXd::Random(4)*500; 
             //b << 1.,1.,1.,20.;
             // test for large coil 3:
             //b[2] = 1000;
@@ -332,9 +350,10 @@ int main(int argc, char **argv)
         //loop_rate.sleep();
         goalvis_pub.publish(goalvis);
         goalvis_pub.publish(fdesvis);
-
+    
         ros::spinOnce();
         ++count;
     }
+
     return 0;
 }

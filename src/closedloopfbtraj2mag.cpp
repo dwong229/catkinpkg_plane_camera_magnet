@@ -186,6 +186,8 @@ int main(int argc, char **argv)
         // Check if both are near waypoint:
         distfromgoal1 = pow(pow(goal1.position.x - mag1_actual.position.x,2) + pow(goal1.position.y - mag1_actual.position.y,2),0.5);
         distfromgoal2 = pow(pow(goal2.position.x - mag2_actual.position.x,2) + pow(goal2.position.y - mag2_actual.position.y,2),0.5);
+        ROS_INFO_STREAM_THROTTLE(0.5,"dist2goal: " << distfromgoal1 <<", " << distfromgoal2 << "Lim: " << dx );
+
         if(distfromgoal1 < dx && distfromgoal2 < dx)
         {
 
@@ -197,6 +199,8 @@ int main(int argc, char **argv)
             errory.clear();
             errorx2.clear();
             errory2.clear();
+            goalvis.points[0] = goal1.position;
+            goalvis.points[1] = goal2.position;
         }
         // take in position of robot
         mag1_actual.acceleration.x = 0;
@@ -358,7 +362,7 @@ int main(int argc, char **argv)
         {
             // if no solution, random start b.
             cout << "re-init b" << endl;
-            b = VectorXd::Random(4)*200; 
+            b = VectorXd::Random(4)*500; 
             //b << 1.,1.,1.,20.;
             // test for large coil 3:
             //b[2] = 1000;

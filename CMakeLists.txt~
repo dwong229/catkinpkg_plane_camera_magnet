@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(plane_camera_magnet)
 
+add_definitions("-std=c++11")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -181,6 +182,12 @@ target_link_libraries(keyboard2mag
 
 add_executable(currentcalc_bruteforce src/currentcalc_bruteforce.cpp)
 target_link_libraries(currentcalc_bruteforce
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(closedloopfbtraj2mag src/closedloopfbtraj2mag.cpp)
+target_link_libraries(closedloopfbtraj2mag
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
