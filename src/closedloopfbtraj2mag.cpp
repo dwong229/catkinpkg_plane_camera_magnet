@@ -201,6 +201,10 @@ int main(int argc, char **argv)
             errory2.clear();
             goalvis.points[0] = goal1.position;
             goalvis.points[1] = goal2.position;
+
+            // update b:
+            b = VectorXd::Map(goal1.Iprecompute.data(),goal1.Iprecompute.size());
+            cout << "Iprecompute: \n " << b.transpose() << endl; // << ", " << goal.Iprecompute[1] << ", " << goal.Iprecompute[2] << ", " goal.Iprecompute[3] << endl;
         }
         // take in position of robot
         mag1_actual.acceleration.x = 0;
@@ -287,7 +291,6 @@ int main(int argc, char **argv)
         magnet.Dymat2 = Dy(magnet.x2,magnet.y2,coil.R,coil.d);
 
         //solve:
-        //b << .2, -2.7, 16, 2.7, 10700, 0.; // F = [0.0283, 0]
         CoilFunctor2 functor(coil, magnet); // functor( ) add arguments here.
         LevenbergMarquardt<CoilFunctor2> lm(functor);
         info = lm.minimize(b);   
@@ -362,11 +365,12 @@ int main(int argc, char **argv)
         {
             // if no solution, random start b.
             cout << "re-init b" << endl;
-            b = VectorXd::Random(4)*500; 
-            //b << 1.,1.,1.,20.;
-            // test for large coil 3:
-            //b[2] = 1000;
-            //cout << "b: " << b << endl;
+            b = VectorXd::Map(goal1.Iprecompute.data(),goal1.Iprecompute.size());
+            VectorXd db;
+            db = VectorXd::Random(4)*20 - VectorXd::Ones(4)*10;
+            b += db;
+            cout << "Iprecompute+db: \n " << b.transpose() << endl;
+
             roboclawCmdDesired.header.stamp = ros::Time::now();
             roboclawCmdDesired.m1 = 0;
             roboclawCmdDesired.m2 = 0;

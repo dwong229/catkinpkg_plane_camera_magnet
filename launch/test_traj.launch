@@ -2,13 +2,9 @@
     <node name="test_trajreading"
         pkg ="plane_camera_magnet"
         type = "test_trajreading"
-        output ="screen">
-        <param name="traj_filename" value="/home/denise/catkin_ws/src/plane_camera_magnet/traj.csv"/>
-    </node>
-
-    <node name="roboclaw4listen_pub"
-        pkg ="plane_camera_magnet"
-        type = "roboclaw4listen_pub.py"
-        output = "screen">
+        output ="screen"
+	launch-prefix = "gdb -ex run --args">
+        <param name="traj_filename" value="/home/mrsl-think/catkin_ws/src/plane_camera_magnet/src/traj2mag1withI.csv"/>
+        <param name="traj_filename2" value="/home/mrsl-think/catkin_ws/src/plane_camera_magnet/src/traj2mag2withI.csv"/>
     </node>
 </launch>

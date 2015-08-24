@@ -46,7 +46,7 @@ void Trajectory::UpdateGoal(plane_camera_magnet::PositionCommand &goal)
   goal.acceleration.y = traj_[i][1][2];
   
 
-  // gains
+  // current
   /*
   goal.kx[0] = traj_[i][4][0];
   goal.kx[1] = traj_[i][4][1];
@@ -97,15 +97,13 @@ int Trajectory::UpdateGoaldx(plane_camera_magnet::PositionCommand &actual, plane
   goal.acceleration.y = traj_[trajidx][1][2];
   
 
-  // gains
-  /*
-  goal.kx[0] = traj_[i][4][0];
-  goal.kx[1] = traj_[i][4][1];
-  goal.kx[2] = traj_[i][4][2];
-  goal.kv[0] = traj_[i][4][3];
-  goal.kv[1] = traj_[i][4][4];
-  goal.kv[2] = traj_[i][4][5];
-  */
+  // current, 3rd dimension for extra columns
+  goal.Iprecompute[0] = traj_[trajidx][2][0];
+  goal.Iprecompute[1] = traj_[trajidx][2][1];
+  goal.Iprecompute[2] = traj_[trajidx][2][2];
+  goal.Iprecompute[3] = traj_[trajidx][2][3];
+  
+  
   return update;
 }
 
