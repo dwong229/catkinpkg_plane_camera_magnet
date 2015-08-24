@@ -1,9 +1,13 @@
 <launch>
-    <node name="closedloopfbpoint2mag"
+    <node name="closedloopfbtraj2mag"
         pkg ="plane_camera_magnet"
-        type = "closedloopfbpoint2mag"
+        type = "closedloopfbtraj2mag"
         output ="screen"
         launch-prefix = "gdb -ex run --args">
         <param name="param_filename" value="/home/denise/catkin_ws/src/plane_camera_magnet/calib/closedloopfbpoint.yml"/>
+ 	<param name="traj_filename2" 
+         value="/home/denise/catkin_ws/src/plane_camera_magnet/trajholdwithI.csv"/>
+         <param name="traj_filename1" 
+         value="/home/denise/catkin_ws/src/plane_camera_magnet/trajholdmovewithI.csv"/>
     </node>
 </launch>

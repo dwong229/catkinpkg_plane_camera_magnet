@@ -64,13 +64,13 @@ int main(int argc, char **argv)
     nh.param("param_filename", param_filename, std::string("closedloopfbpoint.yml"));
     ROS_INFO_STREAM("param filename " << param_filename);
     cv::FileStorage fscal(param_filename.c_str(), cv::FileStorage::READ);
-    double xgoal1 = (double)fscal["xgoal"];
-    double ygoal1 = (double)fscal["ygoal"];
+    //double xgoal1 = (double)fscal["xgoal"];
+    //double ygoal1 = (double)fscal["ygoal"];
     double kx = (double)fscal["kx"];
     double kv = (double)fscal["kv"];
     double ki = (double)fscal["ki"];
-    double xgoal2 = (double)fscal["xgoal2"];
-    double ygoal2 = (double)fscal["ygoal2"];
+    //double xgoal2 = (double)fscal["xgoal2"];
+    //double ygoal2 = (double)fscal["ygoal2"];
     double kx2 = (double)fscal["kx2"];
     double kv2 = (double)fscal["kv2"];
     double ki2 = (double)fscal["ki2"];
@@ -115,15 +115,15 @@ int main(int argc, char **argv)
     Magnet magnet;
     magnet.gamma = 6500;
 
-    goal1.position.x = xgoal1;
-    goal1.position.y = ygoal1;
+//    goal1.position.x = xgoal1;
+//    goal1.position.y = ygoal1;
     goal1.velocity.x = 0;
     goal1.velocity.y = 0;
     goal1.acceleration.x = 0;
     goal1.acceleration.y = 0;
 
-    goal2.position.x = xgoal2;
-    goal2.position.y = ygoal2;
+//    goal2.position.x = xgoal2;
+//    goal2.position.y = ygoal2;
     goal2.velocity.x = 0;
     goal2.velocity.y = 0;
     goal2.acceleration.x = 0;
@@ -142,8 +142,8 @@ int main(int argc, char **argv)
     goalvis.color.r = 1.0f;
     goalvis.color.a = 1.0;
     goalvis.points.resize(2);
-    goalvis.points[0] = goal1.position;
-    goalvis.points[1] = goal2.position;
+    //goalvis.points[0] = goal1.position;
+    //goalvis.points[1] = goal2.position;
 
     fdesvis.id = 2;
     fdesvis.type = visualization_msgs::Marker::LINE_LIST;
@@ -171,6 +171,8 @@ int main(int argc, char **argv)
     traj2.set_start_time();
     traj1.UpdateGoaldx(mag1_actual,goal1);
     traj2.UpdateGoaldx(mag2_actual,goal2);
+    goalvis.points[0] = goal1.position;
+    goalvis.points[1] = goal2.position;
     
     //cout << size.traj() << endl;
     int count = 0;
@@ -188,7 +190,8 @@ int main(int argc, char **argv)
         distfromgoal2 = pow(pow(goal2.position.x - mag2_actual.position.x,2) + pow(goal2.position.y - mag2_actual.position.y,2),0.5);
         ROS_INFO_STREAM_THROTTLE(0.5,"dist2goal: " << distfromgoal1 <<", " << distfromgoal2 << "Lim: " << dx );
 
-        if(distfromgoal1 < dx && distfromgoal2 < dx)
+        //if(distfromgoal1 < dx && distfromgoal2 < dx)
+        if(distfromgoal1 < dx) //for circle
         {
 
             traj1.UpdateGoaldx(mag1_actual,goal1);
@@ -210,8 +213,8 @@ int main(int argc, char **argv)
         mag1_actual.acceleration.x = 0;
         mag1_actual.acceleration.y = 0;
         
-        double mass = 4*0.0000707;
-        //double mass = 1.;
+        //double mass = 4*0.0000707;
+        double mass = 0.1;
 
         // compute F desired
         errorx.push_back((goal1.position.x - mag1_actual.position.x)/freq);
@@ -251,6 +254,15 @@ int main(int argc, char **argv)
         Fdes[1] = goal1.acceleration.y * mass + kx * (goal1.position.y - mag1_actual.position.y) + kv * (goal1.position.y - mag1_actual.velocity.y) + ki * integrateerror[1];
         Fdes[2] = goal2.acceleration.x * mass + kx2 * (goal2.position.x - mag2_actual.position.x) + kv2 * (goal2.position.x - mag2_actual.velocity.x) + ki2 * integrateerror[2];
         Fdes[3] = goal2.acceleration.y * mass + kx2 * (goal2.position.y - mag2_actual.position.y) + kv2 * (goal2.position.y - mag2_actual.velocity.y) + ki2 * integrateerror[3];
+
+        /*troubleshoot components:
+        cout << "F = feed forward (a*mass) + kx(dx) + kv(dv) + ki(interror)" << endl;
+        cout << "Fx1: " << Fdes[0] << " = " << goal1.acceleration.x * mass << " + " << kx * (goal1.position.x - mag1_actual.position.x) << " + " << kv * (goal1.position.x - mag1_actual.velocity.x) << " + " << ki * integrateerror[0] << endl;
+        cout << "Fy1: " << Fdes[1] << " = " << goal1.acceleration.y * mass << " + " << kx * (goal1.position.y - mag1_actual.position.y) << " + " << kv * (goal1.position.y - mag1_actual.velocity.y) << " + " << ki * integrateerror[1] << endl;
+        cout << "Fx2: " << Fdes[2] << " = " << goal2.acceleration.x * mass << " + " << kx2 * (goal2.position.x - mag2_actual.position.x) << " + " << kv2 * (goal2.position.x - mag2_actual.velocity.x) << " + " << ki2 * integrateerror[2] << endl;
+        cout << "Fy2: " << Fdes[3] << " = " << goal2.acceleration.y * mass << " + " << kx2 * (goal2.position.y - mag2_actual.position.y) << " + " << kv2 * (goal2.position.y - mag2_actual.velocity.y) << " + " << ki2 * integrateerror[3] << endl;
+        */
+
 
         geometry_msgs::Point fdespoint1,fdespoint2;
         fdespoint1.x = mag1_actual.position.x + Fdes[0];
@@ -367,7 +379,7 @@ int main(int argc, char **argv)
             cout << "re-init b" << endl;
             b = VectorXd::Map(goal1.Iprecompute.data(),goal1.Iprecompute.size());
             VectorXd db;
-            db = VectorXd::Random(4)*20 - VectorXd::Ones(4)*10;
+            db = VectorXd::Random(4)*40 - VectorXd::Ones(4)*20;
             b += db;
             cout << "Iprecompute+db: \n " << b.transpose() << endl;
 
