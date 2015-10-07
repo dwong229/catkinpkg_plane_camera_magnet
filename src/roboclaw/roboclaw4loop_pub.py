@@ -153,7 +153,7 @@ def talker():
 
 
     #rospy.init_node('talker',anonymous=True)
-    rate = rospy.Rate(1) #Hz
+    rate = rospy.Rate(2) #Hz
     msg = roboclawCmd();
     i = 0;
     cnt = 0;
@@ -165,12 +165,12 @@ def talker():
         m1cur, m2cur = readcurrents(port13);
         print "Current C1: ",m1cur/10.0," C3: ",m2cur/10.0
 
-        val = 100
+        val = 512
 
-        m1val = [val, 0, 0, 0]
-        m2val = [0, -val, 0, 0]
-        m3val = [0, 0, -val, 0]
-        m4val = [0, 0, 0, -val]
+        m1val = [-val, 0, -val, 0]
+        m2val = [0, 0, 0, 0]
+        m3val = [0, -val, 0, -val]
+        m4val = [0, 0, 0, 0]
 
 	    # loop through length of m1val
         for i in range(len(m1val)):
@@ -190,14 +190,10 @@ def talker():
             msg.m4 = m4val[i];
             msg.header.stamp =  rospy.Time.now();
             pub.publish(msg);
-            time.sleep(3)
+            #time.sleep(1)
+            rate.sleep()
 
-        print "==============="
-
-        
-
-        rate.sleep()
-        
+        print "==============="        
         i = i + 1;
 def listener():
 

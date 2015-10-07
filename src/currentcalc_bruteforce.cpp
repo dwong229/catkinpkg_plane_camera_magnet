@@ -22,14 +22,14 @@ int main(int argc, char **argv)
    magnet2.gamma = 6500;
    // xnow
    magnet2.x = -10.0;
-   magnet2.y = 1.0;
-   magnet2.x2 = -9.0;
-   magnet2.y2 = 1.0;
+   magnet2.y = 0.0;
+   magnet2.x2 = 3.0;
+   magnet2.y2 = 0.0;
    //fdes
-   magnet2.Fx = -1.90378836;//0.0283;
-   magnet2.Fy = -0.05010413;
-   magnet2.Fx2 = -1.75166354;//0.0283;
-   magnet2.Fy2 = -0.04514981 ;
+   magnet2.Fx = -3.0;//0.0283;
+   magnet2.Fy = -0.0;
+   magnet2.Fx2 = -1.0;//0.0283;
+   magnet2.Fy2 = -0.0;
    
    magnet2.Mxmat = Mx(magnet2.x,magnet2.y,coil.R,coil.d);
    magnet2.Mymat = My(magnet2.x,magnet2.y,coil.R,coil.d);
