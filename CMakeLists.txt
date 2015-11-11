@@ -191,3 +191,21 @@ target_link_libraries(closedloopfbtraj2mag
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(threshold src/threshold.cpp)
+target_link_libraries(threshold
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(datrackdisc src/datrackdisc.cpp)
+target_link_libraries(datrackdisc
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(dacheck_cal_plane_coils src/dacheck_cal_plane_coils.cpp)
+target_link_libraries(dacheck_cal_plane_coils
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

@@ -111,6 +111,8 @@ public:
     maxThreshold = (int)fs["maxThreshold"];
     minArea = (int)fs["minArea"]; 
     maxArea = (int)fs["maxArea"];
+    ROS_INFO_STREAM("maxArea " << maxArea);
+
 
     if(visualize)
           cv::namedWindow(OPENCV_WINDOW);
@@ -165,7 +167,8 @@ public:
     vector<RotatedRect> minEllipse( contours.size() );
     int count = 0;
     Mat drawing = Mat::zeros( threshold_output.size(), CV_8UC3 );
-    cvtColor(cv_ptr->image, drawing, CV_GRAY2RGB);
+    //cvtColor(cv_ptr->image, drawing, CV_GRAY2RGB);
+    cvtColor(threshold_output, drawing, CV_GRAY2RGB);
     
     // loop through each contour, filter, draw
     for( int i = 0; i < contours.size(); i++ )
@@ -187,6 +190,8 @@ public:
             xymsg.size.push_back(minEllipse[i].size.area());
             xymsg.angle.push_back(minEllipse[i].angle);
 
+            ROS_INFO_STREAM("ID " << i);
+            ROS_INFO_STREAM("Area " << contours[i].size());
 
             //cout << "Ellipse: " << minEllipse[i].center << " size: " << minEllipse[i].size.area() << " angle: " << minEllipse[i].angle << endl;
 
@@ -201,7 +206,8 @@ public:
           }
         }
      }
-     //cout<< "numrobots : " << count << endl;
+     
+     cout<< "===";
      if (count > 2){
 
       waitKey(10);

@@ -98,10 +98,10 @@ public:
 
     //Mat image(3,3,CV_32F,Scalar(5));
     // 1, Identify y-limits for track
-    int numcorners = 8;
+    int numcorners = 4;
     vector<Point> rectcorners(numcorners);
     double xtotal, ytotal;
-    cout << "Click on inner rectangle corner starting from top-left (lower) of workspace"<< endl;
+    cout << "Click on inner rectangle corner starting from top-left of workspace"<< endl;
     for(int i=0;i<numcorners;i++)
     { 
     
@@ -136,7 +136,7 @@ public:
     drawCross(cv_ptr->image, coil4, 5);
     waitKey(10);
  */   
-
+/* n = 8
     double d = 115.0/2;  // half distance between coils
     double rectd = 75.2; //inner distance between rect corners
 
@@ -160,7 +160,29 @@ public:
     double dist24 = (distpt70 + distpt34)/2;
 
     double pix2m = (dist13 + dist24)/(2*rectd);
+*/
+    //n = 4
+    double d = 15;  // half distance between grid points
+    double ddiag = pow(d*d*2,0.5);
+    //double rectd = 75.2; //inner distance between rect corners
 
+    double coilavgx = (xtotal)/numcorners;
+    double coilavgy = (ytotal)/numcorners;
+    Point centerpt;
+    centerpt.x = coilavgx;
+    centerpt.y = coilavgy;
+    drawCross(cv_ptr->image, centerpt, 3);
+
+    //double pix2m = (dist13 + dist24)/(2*2*d)
+    // compute position in pixels of coils:
+
+    double distpt12 = distcalc(rectcorners[0],centerpt); //top left [-15,15]
+    double distpt34 = distcalc(rectcorners[1],centerpt); //top right [15,15]
+    double distpt56 = distcalc(rectcorners[2],centerpt); // bottom right [15,-15]
+    double distpt70 = distcalc(rectcorners[3],centerpt); //bottom left [-15, -15]
+    //cout << "pt1: " << rectcorners[1] << " pt2:" << rectcorners[2] << "dist: " << dist12 << endl;
+    
+    double pix2m = (distpt12 + distpt34 + distpt56 + distpt70)/(4*ddiag);
        
     
     cout << "d(mm):" << d << endl;
@@ -171,7 +193,7 @@ public:
     if(updateYaml){
       cout<< "Updating YAML" << endl;
 
-      FileStorage fs("/home/denise/catkin_ws/src/plane_camera_magnet/calib/calplane.yml",FileStorage::WRITE);
+      FileStorage fs("/home/denise/catkin_ws/src/plane_camera_magnet/calib/dacalplane.yml",FileStorage::WRITE);
       /*fs << "coil1x" << coil1.x << "coil1y" << coil1.y;
       fs << "coil2x" << coil2.x << "coil2y" << coil2.y;
       fs << "coil3x" << coil3.x << "coil3y" << coil3.y;
@@ -180,15 +202,16 @@ public:
       fs << "coilavgx" << coilavgx << "coilavgy" << coilavgy;
       fs << "pix2m" << pix2m;
       fs << "d" << d ;
-      fs << "rectd" << rectd;
+      fs << "ddiag" << ddiag;
       fs << "pt0x" << rectcorners[0].x << "pt0y" << rectcorners[0].y;
       fs << "pt1x" << rectcorners[1].x << "pt1y" << rectcorners[1].y;
       fs << "pt2x" << rectcorners[2].x << "pt2y" << rectcorners[2].y;
       fs << "pt3x" << rectcorners[3].x << "pt3y" << rectcorners[3].y;
-      fs << "pt4x" << rectcorners[4].x << "pt4y" << rectcorners[4].y;
+      /*fs << "pt4x" << rectcorners[4].x << "pt4y" << rectcorners[4].y;
       fs << "pt5x" << rectcorners[5].x << "pt5y" << rectcorners[5].y;
       fs << "pt6x" << rectcorners[6].x << "pt6y" << rectcorners[6].y;
       fs << "pt7x" << rectcorners[7].x << "pt7y" << rectcorners[7].y;
+      */
       fs.release();
 
       exit (EXIT_SUCCESS);

@@ -119,8 +119,10 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     //std::cout << "dt: " << dt << std::endl;
     //std::cout << "filterpose: "<< data.xyPixX[0] << "," << data.xyPixY[0] << std::endl;
     //std::cout << "xyPixXY: " << state(0) << ", " << state(1) << std::endl;
-    std::cout << "Velocity: " << state(2) << ", " << state(3) << std::endl;
-    std::cout << "==========" << std::endl;
+    //std::cout << "Velocity: " << state(2) << ", " << state(3) << std::endl;
+    //std::cout << "==========" << std::endl;
+    ROS_INFO_STREAM("xyPixXY " << state(0) << ", " << state(1));
+
     
 
     //for visualization markers
@@ -237,7 +239,7 @@ int main(int argc, char **argv)
     n.param("max_accel",max_accel,5.0); //10pix/s^2
 
     double dt, camera_fps;
-    n.param("camera_fps", camera_fps, 119.0);
+    n.param("camera_fps", camera_fps, 60.0);
     ROS_ASSERT(camera_fps>0.0);
     dt = 1/camera_fps;
 
@@ -260,7 +262,7 @@ int main(int argc, char **argv)
     // load magidx parameter
     n.getParam("magidx", magidx);
     ROS_INFO_STREAM("magidx " << magidx);
-    cout << "magidx: " << magidx << endl;
+    //cout << "magidx: " << magidx << endl;
 
     ros::Subscriber filterpose_sub = n.subscribe("/filterpose/xyFiltered", 10, &xyFiltered_callback);
   

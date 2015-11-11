@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(plane_camera_magnet)
 
-add_definitions("-std=c++11")
+add_definitions("-std=c++11 -Werror=return-type")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -188,6 +188,18 @@ target_link_libraries(currentcalc_bruteforce
 
 add_executable(closedloopfbtraj2mag src/closedloopfbtraj2mag.cpp)
 target_link_libraries(closedloopfbtraj2mag
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(threshold src/threshold.cpp)
+target_link_libraries(threshold
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(datrackdisc src/datrackdisc.cpp)
+target_link_libraries(datrackdisc
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
