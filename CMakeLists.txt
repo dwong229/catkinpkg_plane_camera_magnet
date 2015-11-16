@@ -209,3 +209,9 @@ target_link_libraries(dacheck_cal_plane_coils
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(joystickvisualization src/joystickvisualization.cpp)
+target_link_libraries(joystickvisualization
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

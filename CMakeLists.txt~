@@ -203,3 +203,9 @@ target_link_libraries(datrackdisc
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(dacheck_cal_plane_coils src/dacheck_cal_plane_coils.cpp)
+target_link_libraries(dacheck_cal_plane_coils
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

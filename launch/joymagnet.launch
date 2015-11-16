@@ -1,0 +1,17 @@
+<launch>
+    <node name="joy_node"
+        pkg="joy" 
+        type = "joy_node"
+        output="screen">
+    </node>    
+    <node name="joystickvisualization"
+        pkg="plane_camera_magnet"
+        type="joystickvisualization"
+        output="screen">
+    </node>
+    <node name="rviz"
+        pkg="rviz"
+        type="rviz"
+        args="-d $(find plane_camera_magnet)/calib/joymagnet.rviz">
+    </node>
+</launch>

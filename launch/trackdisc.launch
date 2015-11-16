@@ -1,0 +1,9 @@
+<launch>
+    <node name="datrackdic"
+            pkg="plane_camera_magnet" 
+            type = "datrackdisc"
+            output="screen">
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calda.yml"/>
+            <param name="param_file" value = "$(find plane_camera_magnet)/calib/paramda.yml"/>
+    </node>
+</launch>
