@@ -176,14 +176,13 @@ public:
     // Find contours, each contour is stored as a vector of points
     Mat canny_output;
     int thresh = 100;
+    blur( threshold_output , threshold_output , Size(5,5) );
     
+
     Canny(threshold_output, canny_output, thresh, thresh * 2, 5);
     int dilation_size = 4;
     Mat element = getStructuringElement(2, Size(2 * dilation_size + 1, 2 * dilation_size + 1),Point(dilation_size, dilation_size));  
     dilate(canny_output,canny_output,element);
-    // convert image for transport:
-    imgintermediate = cv_bridge::CvImage(std_msgs::Header(), "mono8",threshold_output).toImageMsg();
-    imageinter_pub_.publish(imgintermediate);
     //findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
     findContours( canny_output, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_L1, Point(0, 0) );
     //convexHull( threshold_output, threshold_output,false);
@@ -234,9 +233,41 @@ public:
           }
         }
      }
-    if (count == 0){
+     //simple blobdetector
+     // Setup SimpleBlobDetector parameters.
+SimpleBlobDetector::Params params;
+ 
+// Change thresholds
+params.blobColor = 255;
+ 
+// Filter by Area.
+params.filterByArea = true;
+
+// Filter by Circularity
+//params.filterByCircularity = true;
+//params.minCircularity = 0.1;
+ 
+// Filter by Convexity
+params.filterByConvexity = true;
+params.minConvexity = 0.87;
+ 
+// Filter by Inertia
+//params.filterByInertia = true;
+//params.minInertiaRatio = 0.01;
+
+    SimpleBlobDetector detector(params);
+    std::vector<KeyPoint> keypoints;
+    detector.detect(threshold_output,keypoints);
+    Mat im_blob;
+    drawKeypoints( threshold_output, keypoints, im_blob, Scalar(0,0,255), DrawMatchesFlags::DRAW_RICH_KEYPOINTS );
+    // convert image for transport:
+    imgintermediate = cv_bridge::CvImage(std_msgs::Header(), "rgb8",im_blob).toImageMsg();
+    imageinter_pub_.publish(imgintermediate);
+    
+    if (keypoints.size() == 0){
       nodetectioncount += 1;
       cout << "No detection " << nodetectioncount << endl;
+      
     }
 
     sensor_msgs::ImagePtr imgout;
