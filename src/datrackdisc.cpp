@@ -24,7 +24,7 @@
 using namespace std;
 using namespace cv;
 
-static const std::string OPENCV_WINDOW = "track_rod_orient window";
+static const std::string OPENCV_WINDOW = "detection";
 
 /* track_rod_orient.cpp : Subscribes to '/camera/image_raw', uses fitellipse to identify magnet and orientation.
 publishes vector x,y-posn in camera coordinates (pixels) of magnets to xyPix
@@ -65,6 +65,8 @@ class ImageConverter
   int minArea;
   int maxArea;
   sensor_msgs::ImagePtr imgintermediate;
+  int nodetectioncount = 0;
+
 public:
   ImageConverter()
     :nh_("~") ,it_(nh_)
@@ -115,7 +117,7 @@ public:
     maxThreshold = (int)fs["ceilingThreshold"];
     minArea = (int)fs["minArea"]; 
     maxArea = (int)fs["maxArea"];
-    ROS_INFO_STREAM("maxArea " << maxArea);
+    //ROS_INFO_STREAM("maxArea " << maxArea);
 
 
     if(visualize)
@@ -164,8 +166,8 @@ public:
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
     // Detect edges using Threshold
-    threshold( cv_ptr_mono->image, threshold_output, minThreshold, maxThreshold, THRESH_BINARY );
-    
+    threshold( cv_ptr_mono->image, threshold_output, minThreshold, maxThreshold, THRESH_BINARY_INV );
+
     // convert image for transport:
     //imgintermediate = cv_bridge::CvImage(std_msgs::Header(), "mono8", threshold_output).toImageMsg();
     //imageinter_pub_.publish(imgintermediate);
@@ -174,22 +176,27 @@ public:
     // Find contours, each contour is stored as a vector of points
     Mat canny_output;
     int thresh = 100;
-    Canny(threshold_output, canny_output, thresh, thresh * 2, 3);
+    
+    Canny(threshold_output, canny_output, thresh, thresh * 2, 5);
     int dilation_size = 4;
     Mat element = getStructuringElement(2, Size(2 * dilation_size + 1, 2 * dilation_size + 1),Point(dilation_size, dilation_size));  
-    
     dilate(canny_output,canny_output,element);
-    findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
-
+    // convert image for transport:
+    imgintermediate = cv_bridge::CvImage(std_msgs::Header(), "mono8",threshold_output).toImageMsg();
+    imageinter_pub_.publish(imgintermediate);
+    //findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+    findContours( canny_output, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_L1, Point(0, 0) );
+    //convexHull( threshold_output, threshold_output,false);
+    
 
     // Find the rotated rectangles and ellipse for each contour
     vector<RotatedRect> minRect( contours.size() );
     vector<RotatedRect> minEllipse( contours.size() );
     int count = 0;
+
     Mat drawing = Mat::zeros( threshold_output.size(), CV_8UC3 );
     //cvtColor(cv_ptr->image, drawing, CV_GRAY2RGB);
     cvtColor(threshold_output, drawing, CV_GRAY2RGB);
-    
     // loop through each contour, filter, draw
     for( int i = 0; i < contours.size(); i++ )
      { minRect[i] = minAreaRect( Mat(contours[i]) );
@@ -210,8 +217,8 @@ public:
             xymsg.size.push_back(minEllipse[i].size.area());
             xymsg.angle.push_back(minEllipse[i].angle);
 
-            ROS_INFO_STREAM("ID " << i);
-            ROS_INFO_STREAM("Area " << contours[i].size());
+            //ROS_INFO_STREAM("ID " << i);
+            //ROS_INFO_STREA/M("Area " << contours[i].size());
 
             //cout << "Ellipse: " << minEllipse[i].center << " size: " << minEllipse[i].size.area() << " angle: " << minEllipse[i].angle << endl;
 
@@ -227,25 +234,24 @@ public:
           }
         }
      }
-     
-     cout<< "===";
-     if (count > 2){
-
-      waitKey(10);
-     }
-    sensor_msgs::ImagePtr imgout;
-    // Update GUI Window
-    if (visualize){
-      cv::imshow( OPENCV_WINDOW, threshold_outputstatic );    
-      cv::waitKey(3);
+    if (count == 0){
+      nodetectioncount += 1;
+      cout << "No detection " << nodetectioncount << endl;
     }
+
+    sensor_msgs::ImagePtr imgout;
+
       // Output modified video stream
       //image_pub_.publish(cv_ptr->toImageMsg());
       
 
     imgout = cv_bridge::CvImage(std_msgs::Header(), "bgr8", drawing).toImageMsg();
     image_pub_.publish(imgout);
-    
+    // Update GUI Window
+    if (visualize){
+      cv::imshow( OPENCV_WINDOW, drawing );    
+      cv::waitKey(3);
+    }
     // package position for xyReal.msg:
     xymsg.numrobot = count;
 
