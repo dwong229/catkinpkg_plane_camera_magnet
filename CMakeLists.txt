@@ -204,6 +204,12 @@ target_link_libraries(datrackdisc
   plane_camera_magnet
 )
 
+add_executable(datracktri src/datracktri.cpp)
+target_link_libraries(datracktri
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
 add_executable(dacheck_cal_plane_coils src/dacheck_cal_plane_coils.cpp)
 target_link_libraries(dacheck_cal_plane_coils
   ${catkin_LIBRARIES}

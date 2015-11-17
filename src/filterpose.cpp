@@ -81,7 +81,7 @@ public:
 
 
         //lastposex[0] = -1;
-        cout << "Center (pix):" << centerpixx << centerpixy << endl;
+        cout << "Center (pix):" << centerpixx << "," << centerpixy << endl;
         cout << "Pix2m (pix per mm):" << pix2m << endl;
         
 
@@ -118,8 +118,8 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
         actrobot = numdetections;
         sizefirstframe = xyPixSize;
 
-        cout << "Lastposex: " << lastposex[0] << ',' << lastposex[1] << endl;
-        cout << "Number of robots: " << actrobot << endl;
+        //cout << "Lastposex: " << lastposex[0] << ',' << lastposex[1] << endl;
+        //cout << "Number of robots: " << actrobot << endl;
     }
 
     //cout << "Detect and ID" << endl;
@@ -169,7 +169,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     // check for same mapping if 2 detections and values are the same
     if (minidx[0] == minidx[1] && numdetections == 2)
         {
-            cout << "same detection" << endl;
+            //cout << "same detection" << endl;
             if (numdetections == 2)
                 { 
                     if (sizefirstframe[0] > sizefirstframe[1])
@@ -213,7 +213,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     }
     else // numdetection < actrobot
     {
-        cout << "detections less than actrobot" << endl;
+        //cout << "detections less than actrobot" << endl;
         // populate with xyPixXraw with lastpose:
         for (int i = 0; i<actrobot; i++)
         {
@@ -295,9 +295,9 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
 }
 
 void printarray (double arg[], int length) {
-  for (int n=0; n<length; ++n)
-    cout << arg[n] << ' ';
-  cout << '\n';
+  //for (int n=0; n<length; ++n)
+  //  cout << arg[n] << ' ';
+  //cout << '\n';
 }
 
 void indexofSmallestElement(double array[], int size, int& index, double& value)

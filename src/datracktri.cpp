@@ -60,7 +60,7 @@ class ImageConverter
   double radius;
   bool visualize;
   //cv::SimpleBlobDetector::Params params;
-  int discThreshold;
+  int minThreshold;
   int maxThreshold;
   int minArea;
   int maxArea;
@@ -83,7 +83,7 @@ public:
     xyMagnet_pub_ = nh_.advertise<plane_camera_magnet::xyPix>("xyPix",1);
     
     // nh_.param("/magnet_track/calib_file", cal_file, std::string("cal.yml"));
-    visualize = 1;
+    visualize = 0;
     
     std::string cal_file;    
     nh_.param("cal_file", cal_file, std::string("cal.yml"));
@@ -113,10 +113,10 @@ public:
     ROS_INFO_STREAM("param file " << param_file);
     FileStorage fs(param_file.c_str(), FileStorage::READ);  
 
-    discThreshold = (int)fs["discThreshold"];
+    minThreshold = (int)fs["Threshold"];
     maxThreshold = (int)fs["ceilingThreshold"];
-    minArea = (int)fs["minDiscArea"]; 
-    maxArea = (int)fs["maxDiscArea"];
+    minArea = (int)fs["minArea"]; 
+    maxArea = (int)fs["maxArea"];
     //ROS_INFO_STREAM("maxArea " << maxArea);
 
 
@@ -126,6 +126,21 @@ public:
   ~ImageConverter()
   {
     cv::destroyWindow(OPENCV_WINDOW);
+  }
+  void MyLine( Mat img, Point start, double angle )
+  {
+  int thickness = 2;
+  int lineType = 8;
+  Point end;
+  int length = 40;
+  end.x = start.x + length*sin(angle*PI/180);
+  end.y = start.y - length*cos(angle*PI/180);
+  line( img,
+        start,
+        end,
+        Scalar( 0, 0, 255 ),
+        thickness,
+        lineType );
   }
   void imageCb(const sensor_msgs::ImageConstPtr& msg)
   {
@@ -143,6 +158,7 @@ public:
     {
       //cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
       cv_ptr_rgb = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
+      cv_ptr_mono = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -152,20 +168,8 @@ public:
     
 
     // process image
-    Mat imghsv = cv_ptr_rgb->image.clone();
-    cvtColor( cv_ptr_rgb->image, imghsv, CV_RGB2HSV);
-    
-    Mat ch1, ch2, ch3;
-    // "channels" is a vector of 3 Mat arrays:
-    vector<Mat> channels(3);
-    // split img:
-    split(imghsv, channels);
-    // get the channels (dont forget they follow BGR order in OpenCV)
-    ch1 = channels[0]; // flourescent beads are dark on this channel!
-    ch2 = channels[1];
-    ch3 = channels[2];
+    blur( cv_ptr_mono->image , cv_ptr_mono->image , Size(4,4) );
 
-    //blur( cv_ptr_mono->image , cv_ptr_mono->image , Size(4,4) );
 
     plane_camera_magnet::xyPix xymsg; //publish
     xymsg.header.stamp = ros::Time::now();
@@ -176,12 +180,18 @@ public:
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
     // Detect edges using Threshold
-    threshold( ch1, threshold_output, discThreshold, maxThreshold, THRESH_BINARY_INV );
+    threshold( cv_ptr_mono->image, threshold_output, minThreshold, maxThreshold, THRESH_BINARY_INV );
+
     if(visualize){
-    imgintermediate = cv_bridge::CvImage(std_msgs::Header(), "mono8", ch1).toImageMsg();
+    // convert image for transport:
+    imgintermediate = cv_bridge::CvImage(std_msgs::Header(), "mono8", threshold_output).toImageMsg();
     imageinter_pub_.publish(imgintermediate);
-  }
+    }
+
+    Mat threshold_outputstatic = threshold_output;
     // Find contours, each contour is stored as a vector of points
+    Mat canny_output;
+    int thresh = 100;
     blur( threshold_output , threshold_output , Size(5,5) );
     
     threshold( threshold_output, threshold_output, 80, maxThreshold, THRESH_BINARY );
@@ -199,6 +209,7 @@ public:
     
     // Find the rotated rectangles and ellipse for each contour
     //vector<RotatedRect> minRect( contours.size() );
+    vector<RotatedRect> minEllipse( contours.size() );
     vector<vector<Point> >hull( contours.size() );
     int count = 0;
     // loop through each contour, filter, draw
@@ -223,15 +234,17 @@ public:
             pt.x = mc.x;
             pt.y = mc.y;
             
+            // compute angle by fitting an ellipse
+            minEllipse[i] = fitEllipse( Mat(contours[i]) );
+
             //save to ros msg
             xymsg.magx.push_back(pt.x);
             xymsg.magy.push_back(pt.y);
             xymsg.size.push_back(contourArea(hull[i]));
-            xymsg.angle.push_back(0);
+            xymsg.angle.push_back(minEllipse[i].angle * PI/180);
 
             //ROS_INFO_STREAM("ID " << i);
             //ROS_INFO_STREAM("Area " << contours[i].size());
-
             //cout << "x = " << pt.x << ", y = " << pt.y << " size hull = " << contourArea(hull[i]) <<" angle = " << minEllipse[i].angle << endl;
 
             //draw
@@ -242,21 +255,26 @@ public:
             }
             Scalar colorhull = Scalar(0,255,255);//Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
             //ellipse( drawing, minEllipse[i], color, 2, 8 );
-            //drawContours( drawing, contours, i, color, CV_FILLED,8,hierarchy);
+            drawContours( drawing, contours, i, color, CV_FILLED,8,hierarchy);
             drawContours( drawing, hull, i, colorhull, 1, 8, vector<Vec4i>(), 0, Point() );
-            circle( drawing, pt, 1, colorhull, 3, 8,0);          
+            circle( drawing, pt, 5, colorhull, 3, 8,0);          
+            MyLine(drawing, pt, minEllipse[i].angle);
           }
         }
      }
 
 
     sensor_msgs::ImagePtr imgout;
+
+      // Output modified video stream
+      //image_pub_.publish(cv_ptr->toImageMsg());
+      
+
     imgout = cv_bridge::CvImage(std_msgs::Header(), "bgr8", drawing).toImageMsg();
     image_pub_.publish(imgout);
     // Update GUI Window
     if (visualize){
       cv::imshow( OPENCV_WINDOW, drawing );    
-
       cv::waitKey(3);
     }
     // package position for xyReal.msg:
@@ -271,7 +289,7 @@ public:
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "rawdisc"); // initialize node: 
+  ros::init(argc, argv, "rawrobot"); // initialize node: magnet_track
   //ros::init(argc, argv, "magnetpose_real");
 
   ImageConverter ic;

@@ -52,7 +52,7 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     
     if(data.xySize[magidx]!=0)
     {
-        cout << "~detection~" << endl;
+        //cout << "~detection~" << endl;
         static ros::Time t_last_meas = data.header.stamp;
         double meas_dt = (data.header.stamp - t_last_meas).toSec();
         t_last_meas = data.header.stamp;
@@ -78,11 +78,9 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     magnetactual_msg.header.frame_id = data.header.frame_id;
     magnetactual_msg.xyPixX.assign(1,state(0));
     magnetactual_msg.xyPixY.assign(1,state(1));
-    //magnetactual_msg.xyPixX.at(magidx) = state(0);
-    //magnetactual_msg.xyPixX.at(magidx) = state(1);
     magnetactual_msg.xySize.assign(1,data.xySize[magidx]);
-    //magnetactual_msg.xyAngledeg.assign(1,0);
-    //magnetactual_msg.xyAnglerad.assign(1,0);
+    //magnetactual_msg.xyAngledeg.assign(1,data.xyAngledeg[magidx]);
+    magnetactual_msg.xyAnglerad.assign(1,data.xyAnglerad[magidx]);
     //magnetactual_msg.xyAngledeg.at(magidx) = magnetactual_msg.xyAnglerad.at(magidx) = 0;
     //magnetactual_msg.actrobot = data.actrobot;
     //magnetactual_msg.sortidx = data.sortidx;
@@ -121,7 +119,7 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     //std::cout << "xyPixXY: " << state(0) << ", " << state(1) << std::endl;
     //std::cout << "Velocity: " << state(2) << ", " << state(3) << std::endl;
     //std::cout << "==========" << std::endl;
-    ROS_INFO_STREAM("xyPixXY " << state(0) << ", " << state(1));
+    //ROS_INFO_STREAM("xyPixXY " << state(0) << ", " << state(1));
 
     
 
@@ -172,7 +170,7 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     kfline_list.color.a = 1.0;
 
     rawpoints.color.g = 0.0f;
-    rawpoints.color.r = 0.0f;
+    rawpoints.color.r = 1.0f;
     rawpoints.color.b = 0.0f;
     rawpoints.color.a = 0.5;    
 
@@ -186,6 +184,7 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     rawpoints.points.resize(1);
     rawpoints.points[0] = p;
 
+    // kf_marker
     p.x = xyWorldX;
     p.y = xyWorldY;
 
@@ -193,22 +192,28 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     //kfpoints.points.resize(1);
         //kfpoints.points.push_back(p);
     kfpoints.points.push_back(p);
-    if(kfpoints.points.size()>1000)
+    if(kfpoints.points.size()>10)
     {
         kfpoints.points.erase(kfpoints.points.begin(),kfpoints.points.begin()+1);
     }
 
     //velocity: kfline_list:
-    geometry_msgs::Point v;
+    geometry_msgs::Point v, ang;
+
     //double vmag;
     //vmag = pow(pow(state(2),2) + pow(state(3),2),0.5);
     v.x = p.x + xyWorldXdot;
     v.y = p.y + xyWorldYdot; // negative to put in world coords
     v.z = 0;
 
+    ang.x = 10*cos(data.xyAnglerad[magidx]);
+    ang.y = 10*sin(data.xyAnglerad[magidx]);
+    ang.z = 0;
     kfline_list.points.resize(2);
     kfline_list.points[0] = p;
     kfline_list.points[1] = v;
+    kfline_list.points[2] = p;
+    kfline_list.points[3] = ang;
     //end visualization markers
 
     //PUBLISH
@@ -262,6 +267,8 @@ int main(int argc, char **argv)
     // load magidx parameter
     n.getParam("magidx", magidx);
     ROS_INFO_STREAM("magidx " << magidx);
+    //ROS_ASSERT(magidx>0.0);
+
     //cout << "magidx: " << magidx << endl;
 
     ros::Subscriber filterpose_sub = n.subscribe("/filterpose/xyFiltered", 10, &xyFiltered_callback);

@@ -5,12 +5,14 @@
         output="screen"
         launch-prefix = "gdb -ex run --args">
         <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dacalplane.yml"/>
-	<remap from="/track_rod_orient/xyPix" to="/datrackdisc/xyPix"/>
+	<remap from="/track_rod_orient/xyPix" to="/datracktri/xyPix"/>
     </node>    
     <node name="kf_pose"
         pkg="plane_camera_magnet"
         type="kf_pose"
         output="screen">
         <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dacalplane.yml"/>
+	<param name="camera_fps" value = "30.0"/>
+        <param name="magidx" type="int" value="0" />
     </node>
 </launch>
