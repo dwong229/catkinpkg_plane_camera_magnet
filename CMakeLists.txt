@@ -221,3 +221,9 @@ target_link_libraries(joystickvisualization
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(joycoil src/joycoil.cpp)
+target_link_libraries(joycoil
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

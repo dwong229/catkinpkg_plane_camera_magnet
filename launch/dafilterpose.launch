@@ -15,4 +15,9 @@
 	<param name="camera_fps" value = "30.0"/>
         <param name="magidx" type="int" value="0" />
     </node>
+    <node name="rviz"
+        pkg="rviz"
+        type="rviz"
+        args="-d $(find plane_camera_magnet)/calib/damagnet.rviz">
+    </node>
 </launch>

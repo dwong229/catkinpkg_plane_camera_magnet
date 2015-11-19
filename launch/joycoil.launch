@@ -1,0 +1,23 @@
+<launch>
+    <node name="joy_node"
+        pkg="joy" 
+        type = "joy_node"
+        output="screen">
+    </node>    
+    <node name="joycoil"
+        pkg="plane_camera_magnet"
+        type="joycoil"
+        output="screen">
+    </node>
+    <node name="rviz"
+        pkg="rviz"
+        type="rviz"
+        args="-d $(find plane_camera_magnet)/calib/joymagnet.rviz">
+    </node>
+    <node name="roboclaw4listen_pub"
+        pkg ="plane_camera_magnet"
+        type = "roboclaw4listen_pub.py"
+        output = "screen">
+        <remap from="/closedloopfbpoint/roboclawcmddesired" to="/joycoil/roboclawcmddesired"/>
+    </node>
+</launch>

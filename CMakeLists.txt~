@@ -204,7 +204,7 @@ target_link_libraries(datrackdisc
   plane_camera_magnet
 )
 
-add_executable(datrackti src/datracktri.cpp)
+add_executable(datracktri src/datracktri.cpp)
 target_link_libraries(datracktri
   ${catkin_LIBRARIES}
   plane_camera_magnet
@@ -218,6 +218,12 @@ target_link_libraries(dacheck_cal_plane_coils
 
 add_executable(joystickvisualization src/joystickvisualization.cpp)
 target_link_libraries(joystickvisualization
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(joycoil src/joycoil.cpp)
+target_link_libraries(joycoil
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )

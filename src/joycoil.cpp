@@ -1,37 +1,49 @@
 // Node to listen to controller for position and orientation 
-// Plot in rviz
+// Plot in rviz and publish coil commands
 
 #include <ros/ros.h>
 #include <sensor_msgs/Joy.h>
 #include <Eigen/Geometry>
 #include <visualization_msgs/Marker.h> //for rvis visualization
+#include <plane_camera_magnet/roboclawCmd.h>
 #include <math.h>
+
 
 typedef Eigen::Vector3d Vec3;
 
 using namespace std;
 
 static ros::Publisher joymarker_pub;
+static ros::Publisher roboCmdDes_pub;
 
-
-
-class MagnetJoy {
-public:
+class CoilJoy {
+public: 
     void publish_to_rviz() {
-        
         joymarker_pub.publish(joyarrow);
+        roboCmdDes_pub.publish(roboclawCmdDesired);
     }
 
-    void publish_marker_update(const sensor_msgs::Joy &msg) {
-        //translate_with_joy(msg, diff);
+    void publish_marker_roboclaw_update(const sensor_msgs::Joy &msg) {
+        ////translate_with_joy(msg, diff);
         // update current position
         double joy_orientation;
-        if(std::abs(msg.axes.at(axis_Lx))>zerocheck)
-            magnet_position(0) -= msg.axes.at(axis_Lx);
-        if(std::abs(msg.axes.at(axis_Ly))>zerocheck)
-            magnet_position(1) += msg.axes.at(axis_Ly);
-        joyarrow.pose.position.x = magnet_position(0);
-        joyarrow.pose.position.y = magnet_position(1);
+
+        // map x to coil 1 & 3
+        if(std::abs(msg.axes.at(axis_Lx))>zerocheck){
+            roboclawCmdDesired.m1 = 512*msg.axes.at(axis_Lx)*(signbit(msg.axes.at(axis_Lx))-1);
+            roboclawCmdDesired.m3 = 512*msg.axes.at(axis_Lx)*signbit(msg.axes.at(axis_Lx));
+        }
+        else
+            roboclawCmdDesired.m1 = roboclawCmdDesired.m3 = 0.0;
+
+        if(std::abs(msg.axes.at(axis_Ly))>zerocheck){
+            roboclawCmdDesired.m2 = 512*msg.axes.at(axis_Ly)*(signbit(msg.axes.at(axis_Ly))-1);
+            roboclawCmdDesired.m4 = 512*msg.axes.at(axis_Ly)*signbit(msg.axes.at(axis_Ly));
+        }
+        else
+            roboclawCmdDesired.m2 = roboclawCmdDesired.m4 = 0.0;
+        //joyarrow.pose.position.x = magnet_position(0);
+        //joyarrow.pose.position.y = magnet_position(1);
         if(std::abs(msg.axes.at(axis_Rx))>zerocheck ||std::abs(msg.axes.at(axis_Ry))>zerocheck){
             joy_orientation = atan2(msg.axes.at(axis_Ry),-msg.axes.at(axis_Rx));
             // determine direction of rotation: + CCW, - CW
@@ -74,12 +86,15 @@ public:
         joyarrow.color.g = 1.0;
         joyarrow.color.b = 0.0;
         joymarker_pub_.publish(joyarrow);
+
+        roboCmdDes_pub_.publish(roboclawCmdDesired);
+    
     }
 
-    
     void update() {
-    if (last_joy_.buttons.size() != 0) {
-        publish_marker_update(last_joy_);
+        if(last_joy_.buttons.size() != 0) {
+            publish_marker_roboclaw_update(last_joy_);
+
         }
     }
     void joyCB(const sensor_msgs::Joy &msg) {
@@ -92,18 +107,24 @@ public:
             last_joy_.buttons.at(i) |= msg.buttons.at(i);
         }
     }
-
-    MagnetJoy() {
-        joy_sub_ = n_.subscribe("/joy", 20, &MagnetJoy::joyCB, this);
+    CoilJoy() {
+        joy_sub_ = n_.subscribe("/joy", 20, &CoilJoy::joyCB, this);
         joymarker_pub_ = n_.advertise<visualization_msgs::Marker>("visualization_joy", 1, this);
+        roboCmdDes_pub_ = n_.advertise<plane_camera_magnet::roboclawCmd>("roboclawcmddesired",1); // always publish newest command
+
     }
+
 
 private:
   ros::NodeHandle n_{"~"};
   ros::Subscriber joy_sub_;
+  ros::Subscriber magnet_pose_actual_;
   ros::Publisher joymarker_pub_;
+  ros::Publisher roboCmdDes_pub_;
+
 
   visualization_msgs::Marker joyarrow;
+  plane_camera_magnet::roboclawCmd roboclawCmdDesired;
 
   double magnet_orientation{0.0};
   Vec3 magnet_position{Vec3::Zero()};
@@ -122,18 +143,20 @@ private:
   const int button_b{1};
   const int button_x{2};
   const int button_y{3};
-};
+    };
+    
+
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "joystickvisualization");
+    ros::init(argc, argv, "magnetjoycontrol");
     ros::NodeHandle n("~");
 
-    MagnetJoy mj;   
+    CoilJoy cj;   
 
     ros::Rate r(10.0);
     while (n.ok()) {
-        mj.update();
+        cj.update();
         r.sleep();
         ros::spinOnce();
     }

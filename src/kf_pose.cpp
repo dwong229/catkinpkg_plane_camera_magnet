@@ -206,10 +206,10 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     v.y = p.y + xyWorldYdot; // negative to put in world coords
     v.z = 0;
 
-    ang.x = 10*cos(data.xyAnglerad[magidx]);
-    ang.y = 10*sin(data.xyAnglerad[magidx]);
+    ang.x = p.x +5*sin(data.xyAnglerad[magidx]);
+    ang.y = p.y +5*cos(data.xyAnglerad[magidx]);
     ang.z = 0;
-    kfline_list.points.resize(2);
+    kfline_list.points.resize(4);
     kfline_list.points[0] = p;
     kfline_list.points[1] = v;
     kfline_list.points[2] = p;

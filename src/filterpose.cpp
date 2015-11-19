@@ -47,7 +47,7 @@ class FilterPose
         vector<double> xyPixX;
         vector<double> xyPixY;
         vector<double> xyPixSize;
-        vector<double> xyPixAngdeg;
+        vector<double> xyPixAngrad;
         int numdetections;
 
 
@@ -102,7 +102,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     xyPixX = data.magx;
     xyPixY = data.magy;
     xyPixSize = data.size;
-    xyPixAngdeg = data.angle;
+    xyPixAngrad = data.angle;
     numdetections = data.numrobot;
 
     //cout << xyPixX[0] << "," << xyPixX[1] << endl;
@@ -113,7 +113,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
         cout<< "Update lastpose" << endl;
         lastposex = xyPixX;
         lastposey = xyPixY;
-        lastposeang = xyPixAngdeg;
+        lastposeang = xyPixAngrad;
         
         actrobot = numdetections;
         sizefirstframe = xyPixSize;
@@ -135,7 +135,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     double xyPixXraw [actrobot];
     double xyPixYraw [actrobot];
     double xyPixSizeraw [actrobot];
-    double xyPixAngdegraw [actrobot];
+    double xyPixAngradraw [actrobot];
 
     // vector<double> xyPixXraw;
     // vector<double> xyPixYraw;
@@ -207,7 +207,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
             {
                 xyPixXraw[i] = xyPixX[minidx[i]];
                 xyPixYraw[i] = xyPixY[minidx[i]];
-                xyPixAngdegraw[i] = xyPixAngdeg[minidx[i]];
+                xyPixAngradraw[i] = xyPixAngrad[minidx[i]];
                 xyPixSizeraw[i] = xyPixSize[minidx[i]];
             }
     }
@@ -219,7 +219,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
         {
             xyPixXraw[i] = lastposex.at(i);
             xyPixYraw[i] = lastposey.at(i);
-            xyPixAngdegraw[i] = lastposeang.at(i);
+            xyPixAngradraw[i] = lastposeang.at(i);
             xyPixSizeraw[i] = 0;
         }
 
@@ -229,7 +229,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
                 {// keep assignment if dist is less than 20.
                     xyPixXraw[i] = xyPixX[minidx[i]];
                     xyPixYraw[i] = xyPixY[minidx[i]];
-                    xyPixAngdegraw[i] = xyPixAngdeg[minidx[i]];
+                    xyPixAngradraw[i] = xyPixAngrad[minidx[i]];
                     xyPixSizeraw[i] = xyPixSize[minidx[i]];
                 }
                 else
@@ -240,7 +240,7 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     // 
     vector<double> xyWorldX (actrobot,0.0);
     vector<double> xyWorldY (actrobot,0.0);
-    vector<double> xyAnglerad (actrobot,0.0);
+    vector<double> xyAngledeg (actrobot,0.0);
     vector<double> xyPixSizeVector (actrobot,0.0);
     vector<int8_t> minidxVector (actrobot,-1);
 
@@ -251,12 +251,12 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
         // 3. Update last pose
         lastposex.at(i) = xyPixXraw[i];
         lastposey.at(i) = xyPixYraw[i];
-        lastposeang.at(i) = xyPixAngdegraw[i];
+        lastposeang.at(i) = xyPixAngradraw[i];
         //cout << "lastpose" << endl;
         // 4. Convert to xySorted coords
         xyWorldX.at(i) = (xyPixXraw[i] - centerpixx)/pix2m;
         xyWorldY.at(i) = (-xyPixYraw[i] + centerpixy)/pix2m;
-        xyAnglerad.at(i) = xyPixAngdegraw[i] * PI/180.0;
+        xyAngledeg.at(i) = xyPixAngradraw[i] * 180.0/PI;
         
         xyPixSizeVector.at(i) = xyPixSizeraw[i];
         minidxVector.at(i) = minidx[i];
@@ -283,8 +283,8 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     xymsg.xyPixX = lastposex;
     xymsg.xyPixY = lastposey;
     xymsg.xySize = xyPixSizeVector;
-    xymsg.xyAngledeg = lastposeang;
-    xymsg.xyAnglerad = xyAnglerad;
+    xymsg.xyAngledeg = xyAngledeg;
+    xymsg.xyAnglerad = lastposeang;
     xymsg.actrobot = actrobot;
     xymsg.sortidx = minidxVector;
 
