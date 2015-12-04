@@ -27,18 +27,18 @@ public:
         ////translate_with_joy(msg, diff);
         // update current position
         double joy_orientation;
-
+        int maxpwm = 8000; //655359;
         // map x to coil 1 & 3
         if(std::abs(msg.axes.at(axis_Lx))>zerocheck){
-            roboclawCmdDesired.m1 = 512*msg.axes.at(axis_Lx)*(signbit(msg.axes.at(axis_Lx))-1);
-            roboclawCmdDesired.m3 = 512*msg.axes.at(axis_Lx)*signbit(msg.axes.at(axis_Lx));
+            roboclawCmdDesired.m1 = -maxpwm*msg.axes.at(axis_Lx)*(signbit(msg.axes.at(axis_Lx))-1);
+            roboclawCmdDesired.m3 = -maxpwm*msg.axes.at(axis_Lx)*signbit(msg.axes.at(axis_Lx));
         }
         else
             roboclawCmdDesired.m1 = roboclawCmdDesired.m3 = 0.0;
 
         if(std::abs(msg.axes.at(axis_Ly))>zerocheck){
-            roboclawCmdDesired.m2 = 512*msg.axes.at(axis_Ly)*(signbit(msg.axes.at(axis_Ly))-1);
-            roboclawCmdDesired.m4 = 512*msg.axes.at(axis_Ly)*signbit(msg.axes.at(axis_Ly));
+            roboclawCmdDesired.m2 = -maxpwm*msg.axes.at(axis_Ly)*(signbit(msg.axes.at(axis_Ly))-1);
+            roboclawCmdDesired.m4 = -maxpwm*msg.axes.at(axis_Ly)*signbit(msg.axes.at(axis_Ly));
         }
         else
             roboclawCmdDesired.m2 = roboclawCmdDesired.m4 = 0.0;

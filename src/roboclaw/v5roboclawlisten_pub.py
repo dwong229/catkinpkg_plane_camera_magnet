@@ -5,9 +5,7 @@ from plane_camera_magnet.msg import roboclawCmd
 from std_msgs.msg import String
 
 # for roboclaw : 
-import serial
-import struct
-import time
+import roboclaw
 import math
 import csv
 import numpy as np
@@ -17,11 +15,9 @@ try:
 except ImportError:
     print "numpy is not installed"
 
-checksum = 0
+roboclaw.Open("/dev/roboclaw0",38400)
 
-port13 = serial.Serial("/dev/roboclaw0", baudrate=38400, timeout=0.1)
-port24 = serial.Serial("/dev/roboclaw1", baudrate=38400, timeout=0.1)
-noStr = "nonum"
+checksum = 0
 
 #  Controller that takes in ROS msg roboclawCmdDesired.
 
@@ -33,106 +29,6 @@ mu = 0.004
 u0 = math.pow(10,-7)*4*PI
 R = 0.0286
 mass = 0.000282
-#initialize m1val, m2val
-
-def sendcommand(address,command,port):
-	global checksum
-	checksum = address
-	port.write(chr(address));
-	checksum += command
-	port.write(chr(command));
-	return;
-
-def readbyte(port):
-	global checksum
-	val = struct.unpack('>B',port.read(1));
-	checksum += val[0]
-	return val[0];	
-def readword(port):
-	global checksum
-	val = struct.unpack('>H',port.read(2));
-	checksum += (val[0]&0xFF)
-	checksum += (val[0]>>8)&0xFF
-	return val[0];	
-def writebyte(val,port):
-	global checksum
-	checksum += val
-	return port.write(struct.pack('>B',val));
-def writeword(val,port):
-	global checksum
-	checksum += val
-	checksum += (val>>8)&0xFF
-	return port.write(struct.pack('>H',val));
-def writesword(val,port):
-	global checksum
-	checksum += val
-	checksum += (val>>8)&0xFF
-	return port.write(struct.pack('>h',val));
-
-def readversion(port):
-	sendcommand(128,21,port)
-	return port.read(32);
-
-def readcurrents(port):
-	sendcommand(128,49,port);
-	motor1 = readword(port);
-	motor2 = readword(port);
-	crc = checksum&0x7F
-	if crc==readbyte(port):
-		return (motor1,motor2);
-	return (-1,-1);
-
-def SetM1DutyAccel(accel,duty):
-	port = port13
-	sendcommand(128,52,port)
-	writesword(duty,port)
-	writeword(accel,port)
-	writebyte(checksum&0x7F,port);
-	return;
-
-def SetM2DutyAccel(accel,duty):
-	port = port24
-	sendcommand(128,52,port)
-	writesword(duty,port)
-	writeword(accel,port)
-	writebyte(checksum&0x7F,port);
-	return;
-
-def SetM3DutyAccel(accel,duty):
-	port = port13
-	sendcommand(128,53,port)
-	writesword(duty,port)
-	writeword(accel,port)
-	writebyte(checksum&0x7F,port);
-	return;
-
-def SetM4DutyAccel(accel,duty):
-	port = port24
-	sendcommand(128,53,port)
-	writesword(duty,port)
-	writeword(accel,port)
-	writebyte(checksum&0x7F,port);
-	return;
-
-
-def readtemperature(port):
-	sendcommand(128,82,port);
-	val = readword(port)
-	crc = checksum&0x7F
-	if crc==readbyte(port):
-		return val
-	return -1
-
-def readerrorstate(port):
-	sendcommand(128,90,port);
-	val = readbyte(port)
-	#val = readword()
-	crc = checksum&0x7F
-	if crc==readbyte(port):
-#	if crc==readword():
-		return val
-	return -1
-# end for roboclaw
 
 print "Roboclaw 4 Coil Inputs\r\n"
 def talker(mval):
@@ -162,7 +58,7 @@ def callback(desiredcmd):
     rate = rospy.Rate(10) #Hz
 
     minval = 2
-    maxval = 512
+    maxval = 10000
 
     # bound value of pwm assignment
     # sign of pwm
@@ -183,16 +79,16 @@ def callback(desiredcmd):
     mval = pwm*pwmsave + 0*pwmsign*pwmlimit
 
     # assign values
-    SetM1DutyAccel(65535,mval[0])
-    SetM2DutyAccel(65535,mval[1])
-    SetM3DutyAccel(65535,mval[2])
-    SetM4DutyAccel(65535,mval[3])
+    roboclaw.SetM1DutyAccel(65535,mval[0])
+    roboclaw.SetM2DutyAccel(65535,mval[1])
+    roboclaw.SetM3DutyAccel(65535,mval[2])
+    roboclaw.SetM4DutyAccel(65535,mval[3])
     
-    error13 = readerrorstate(port13)
-    error24 = readerrorstate(port24)
+    #error13 = readerrorstate(port13)
+    #error24 = readerrorstate(port24)
     #print "Error State:",repr(readerrorstate(port13))
     #print "Temperature:",readtemperature(port13)/10.0
-    m1cur, m2cur = readcurrents(port13);
+    #m1cur, m2cur = readcurrents(port13);
     #print "Current C1: ",m1cur/10.0," C3: ",m2cur/10.0
     #print ("Coil1: ", mval[0])
     #print ("Coil2: ", mval[1])
@@ -202,10 +98,10 @@ def callback(desiredcmd):
     try:
         talker(mval)
     except rospy.ROSInterruptException:
-        SetM1DutyAccel(1500,0)
-        SetM2DutyAccel(1500,0)
-        SetM3DutyAccel(1500,0)
-        SetM4DutyAccel(1500,0)
+        roboclaw.SetM1DutyAccel(1500,0)
+        roboclaw.SetM2DutyAccel(1500,0)
+        roboclaw.SetM3DutyAccel(1500,0)
+        roboclaw.SetM4DutyAccel(1500,0)
         pass
     rate.sleep()
 def listener():
@@ -229,19 +125,19 @@ def listener():
 
 if __name__ == '__main__':
    
-    SetM1DutyAccel(1500,0)
-    SetM2DutyAccel(1500,0)
-    SetM3DutyAccel(1500,0)
-    SetM4DutyAccel(1500,0)
+    roboclaw.SetM1DutyAccel(1500,0)
+    roboclaw.SetM2DutyAccel(1500,0)
+    roboclaw.SetM3DutyAccel(1500,0)
+    roboclaw.SetM4DutyAccel(1500,0)
     #time.sleep(5)
 
     #Get version string
-    sendcommand(128,21,port13);
-    rcv = port13.read(32)
-    print repr(rcv)
-    sendcommand(128,21,port24);
-    rcv2 = port24.read(32)
-    print repr(rcv2)
+    config = roboclaw.GetConfig(0x80)
+    print "13config: ", format(config[1],'02x')
+
+    config = roboclaw.GetConfig(0x81)
+    print "24config: ", format(config[1],'02x')
+
 
     pub = rospy.Publisher('roboclawcommand',roboclawCmd, queue_size = 10)
     listener()

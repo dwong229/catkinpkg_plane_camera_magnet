@@ -45,21 +45,6 @@ pwm = np.array([0,0,0,0])
 stepsize = 512/4;
 toggle = np.array([1.0])
 
-def SetM1DutyAccel(accel,duty):
-    roboclaw.DutyAccelM1(address13, accel, duty);
-    return;
-
-def SetM2DutyAccel(accel,duty):
-    roboclaw.DutyAccelM1(address24, accel, duty);
-    return;
-
-def SetM3DutyAccel(accel,duty):
-    roboclaw.DutyAccelM2(address13, accel, duty);
-    return;
-
-def SetM4DutyAccel(accel,duty):
-    roboclaw.DutyAccelM2(address24, accel, duty);
-    return;
 class _Getch:
     # initialize variables
     def __call__(self):
@@ -154,10 +139,10 @@ def talker():
         # hit arrows to change value of each coils
         loop = get() #(pwm,toggle,stepsize)
 	
-        SetM1DutyAccel(65535,pwm[0])
-        SetM2DutyAccel(65535,pwm[1])
-        SetM3DutyAccel(65535,pwm[2])
-        SetM4DutyAccel(65535,pwm[3])
+        roboclaw.SetM1DutyAccel(65535,pwm[0])
+        roboclaw.SetM2DutyAccel(65535,pwm[1])
+        roboclaw.SetM3DutyAccel(65535,pwm[2])
+        roboclaw.SetM4DutyAccel(65535,pwm[3])
         print ("Coil1: ", pwm[0])
         print ("Coil2: ", pwm[1])
         print ("Coil3: ", pwm[2])

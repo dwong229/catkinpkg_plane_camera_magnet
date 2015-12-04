@@ -14,9 +14,9 @@
         type="rviz"
         args="-d $(find plane_camera_magnet)/calib/joymagnet.rviz">
     </node>
-    <node name="roboclaw4listen_pub"
+    <node name="v5roboclawlisten_pub"
         pkg ="plane_camera_magnet"
-        type = "roboclaw4listen_pub.py"
+        type = "v5roboclawlisten_pub.py"
         output = "screen">
         <remap from="/closedloopfbpoint/roboclawcmddesired" to="/joycoil/roboclawcmddesired"/>
     </node>

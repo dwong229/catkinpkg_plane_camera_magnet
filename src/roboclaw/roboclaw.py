@@ -1036,3 +1036,24 @@ def Open(comport, rate):
 	port = serial.Serial(comport, baudrate=rate, timeout=0.1, interCharTimeout=0.01)
 	return
 
+global address13
+global address24
+
+address13 = 0x80
+address24 = 0x81
+
+def SetM1DutyAccel(accel,duty):
+    	DutyAccelM1(address13, accel, duty)
+	return
+
+def SetM2DutyAccel(accel,duty):
+	DutyAccelM1(address24, accel, duty)
+	return
+
+def SetM3DutyAccel(accel,duty):
+    	DutyAccelM2(address13, accel, duty)
+   	return
+
+def SetM4DutyAccel(accel,duty):
+    	DutyAccelM2(address24, accel, duty);
+	return;

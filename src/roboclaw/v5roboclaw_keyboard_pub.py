@@ -26,8 +26,6 @@ except ImportError:
 
 checksum = 0
 
-address13 = 0x80
-address24 = 0x81
 baudrate = 38400
 roboclaw.Open("/dev/roboclaw0",baudrate)
 
@@ -42,7 +40,8 @@ mass = 0.000282
 
 global pwm, stepsize, toggle
 pwm = np.array([0,0,0,0])
-stepsize = 512/4;
+maxpwmval = 32767
+stepsize = maxpwmval/4;
 toggle = np.array([1.0])
 
 class _Getch:
@@ -92,15 +91,13 @@ def get(): #(pwm,toggle,stepsize):
         pwmsign = np.sign(pwm)
 
         # values greater than 512 limit
-        pwmlimit = np.absolute(pwm) > 512
+        pwmlimit = np.absolute(pwm) > maxpwmval
 
         # values below 512
-        pwmsave = np.absolute(pwm)<=512
+        pwmsave = np.absolute(pwm)<=maxpwmval
 
         #pwnnew=pwmnew.astype(int)
-        pwm = pwm*pwmsave + 512*pwmsign*pwmlimit
-
-        print pwm
+        pwm = pwm*pwmsave + maxpwmval*pwmsign*pwmlimit
 
         print "toggle: " + str(toggle[0])
         print stepsize
@@ -114,8 +111,8 @@ def talker():
     # publishing to roboclawcommand topic
     pub = rospy.Publisher('/v5roboclaw4keyboard_pub/roboclawCmd', roboclawCmd, queue_size=10)
     #Get version string
-    version13 = roboclaw.ReadVersion(address13)
-    version24 = roboclaw.ReadVersion(address24)
+    version13 = roboclaw.ReadVersion(0x80)
+    version24 = roboclaw.ReadVersion(0x81)
     if version13[0]==False:
         print "roboclaw0: GETVERSION Failed"
     else:
@@ -139,10 +136,10 @@ def talker():
         # hit arrows to change value of each coils
         loop = get() #(pwm,toggle,stepsize)
 	
-        SetM1DutyAccel(65535,pwm[0])
-        SetM2DutyAccel(65535,pwm[1])
-        SetM3DutyAccel(65535,pwm[2])
-        SetM4DutyAccel(65535,pwm[3])
+        roboclaw.SetM1DutyAccel(65535,pwm[0])
+        roboclaw.SetM2DutyAccel(65535,pwm[1])
+        roboclaw.SetM3DutyAccel(65535,pwm[2])
+        roboclaw.SetM4DutyAccel(65535,pwm[3])
         print ("Coil1: ", pwm[0])
         print ("Coil2: ", pwm[1])
         print ("Coil3: ", pwm[2])
@@ -190,11 +187,11 @@ def listener():
         talker()
         #motorupdate()
     except rospy.ROSInterruptException:
-      SetM1DutyAccel(1500,0)
-      SetM2DutyAccel(1500,0)
-      SetM3DutyAccel(1500,0)
-      SetM4DutyAccel(1500,0)
-      pass
+        roboclaw.SetM1DutyAccel(1500,0)
+        roboclaw.SetM2DutyAccel(1500,0)
+        roboclaw.SetM3DutyAccel(1500,0)
+        roboclaw.SetM4DutyAccel(1500,0)
+        pass
 
     
     # spin() simply keeps python from exiting until this node is stopped
@@ -203,10 +200,10 @@ def listener():
 
 if __name__ == '__main__':
    
-   SetM1DutyAccel(1500,0)
-   SetM2DutyAccel(1500,0)
-   SetM3DutyAccel(1500,0)
-   SetM4DutyAccel(1500,0)
+   roboclaw.SetM1DutyAccel(1500,0)
+   roboclaw.SetM2DutyAccel(1500,0)
+   roboclaw.SetM3DutyAccel(1500,0)
+   roboclaw.SetM4DutyAccel(1500,0)
    #time.sleep(5)
 
    listener()
