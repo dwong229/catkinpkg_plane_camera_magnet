@@ -1,0 +1,50 @@
+<launch>
+	<node pkg="rosbag" 
+		type="play" 
+		name="rosbag" 
+		args="-l /home/denise/Dropbox/temp/image_color_rect_2015-11-16-13-39-11.bag"/>  
+	<node   pkg="image_view" 
+            name = "disp"
+            type = "image_view" 
+            args="image:=/pg_14434226/image_rect_color" >
+    	</node>
+   	<node name="datrackdisc"
+            pkg="plane_camera_magnet" 
+            type = "datrackdisc"
+            output="screen">
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calda.yml"/>
+            <param name="param_file" value = "$(find plane_camera_magnet)/calib/paramda_big.yml"/>
+    	</node>
+	<node name="datracktri"
+            pkg="plane_camera_magnet" 
+            type = "datracktri"
+            output="screen">
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calda.yml"/>
+            <param name="param_file" value = "$(find plane_camera_magnet)/calib/paramda_big.yml"/>
+    	</node>
+	<node name="rqt_image_view"
+	    pkg="rqt_image_view"
+	    type="rqt_image_view">
+	</node>
+	<node name="filterpose"
+            pkg="plane_camera_magnet" 
+            type = "filterpose"
+            output="screen"
+            launch-prefix = "gdb -ex run --args">
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dacalplane.yml"/>
+	    <remap from="/track_rod_orient/xyPix" to="/datracktri/xyPix"/>
+        </node>    
+        <node name="kf_pose"
+            pkg="plane_camera_magnet"
+            type="kf_pose"
+            output="screen">
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dacalplane.yml"/>
+            <param name="camera_fps" value = "30.0"/>
+            <param name="magidx" type="int" value="0" />
+        </node>
+        <node name="rviz"
+            pkg="rviz"
+            type="rviz"
+            args="-d $(find plane_camera_magnet)/calib/damagnet.rviz">
+        </node>
+</launch>

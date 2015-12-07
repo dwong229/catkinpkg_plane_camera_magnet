@@ -133,40 +133,60 @@ public:
     pt6.x = pt3x;
     pt6.y = pt3y;
     
-    circle(cv_ptr->image, center, 5, CV_RGB(0,0,255),3,-1);
-    
-    
-    //drawCross(cv_ptr->image, ymaxpt, 5);
-  
-
-    //drawCross(cv_ptr->image, xminpt, 5);
-    
-    //drawCross(cv_ptr->image, xmaxpt, 5);
-    line(cv_ptr->image, pt1,pt2,CV_RGB(255,0,0),2);
-    line(cv_ptr->image, pt5,pt6,CV_RGB(255,0,0),2);
+    circle(cv_ptr->image, center, 5, CV_RGB(255,0,0),3,-1);
+    //Keypoints
+    //line(cv_ptr->image, pt1,pt2,CV_RGB(255,0,0),1);
+    //line(cv_ptr->image, pt5,pt6,CV_RGB(255,0,0),1);
+    circle(cv_ptr->image, pt1,2,CV_RGB(255,0,0),1,-1);
+    circle(cv_ptr->image, pt5,2,CV_RGB(255,0,0),1,-1);
+    circle(cv_ptr->image, pt2,2,CV_RGB(255,0,0),1,-1);
+    circle(cv_ptr->image, pt6,2,CV_RGB(255,0,0),1,-1);
 
 
-    // draw cross for petridish:
+    // draw cross for projected grid points:
     Point dishN, dishS, dishE, dishW;
-    double ldist = 60; // size of dish in mm
-    //double ldist = 100;
-
+    double ldist = 15; // size of dish in mm
     double lpix = ldist * pixpermm;
+
+    /*
+    //Green cross
+    
     dishN.x = dishS.x = center.x;
-    dishN.y = center.y + lpix/2;
-    dishS.y = center.y - lpix/2;
+    dishN.y = center.y + lpix;
+    dishS.y = center.y - lpix;
 
     dishE.y = dishW.y = center.y;
-    dishE.x = center.x - lpix/2;
-    dishW.x = center.x + lpix/2;
+    dishE.x = center.x - lpix;
+    dishW.x = center.x + lpix;
+
+
 
     line(cv_ptr->image, dishN,dishS,CV_RGB(0,255,0),1);
     line(cv_ptr->image, dishE,dishW,CV_RGB(0,255,0),1);
+    drawCross(cv_ptr->image, dishN, 3);
+    drawCross(cv_ptr->image, dishS, 3);   
+    drawCross(cv_ptr->image, dishE, 3);
+    drawCross(cv_ptr->image, dishW, 3);   
+*/
+    //generate grid of points:
+    vector<Point> gridpts;
+    int xgrid = 5;
+    int ygrid = 3;
+
+    for( int xidx = -2; xidx < 3; xidx++ )
+    {
+      for (int yidx = -1; yidx < 2; yidx++ )
+      {
+        Point temppt;
+        temppt.x = coilavgx + xidx*lpix;
+        temppt.y = coilavgy + yidx*lpix;
+        gridpts.push_back(temppt);
+        drawCross(cv_ptr->image, temppt, 3);
+      }
+    }
 
     // Update GUI Window
-    //cv::imshow(OPENCV_WINDOW, cv_ptr->image);
     cv::imshow(OPENCV_WINDOW,  cv_ptr->image);
-
     cv::waitKey(3);
   }
 };

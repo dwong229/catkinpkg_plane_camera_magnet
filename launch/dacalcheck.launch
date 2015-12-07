@@ -1,5 +1,5 @@
 <launch>
-    <include file="/home/denise/catkin_ws/src/flea3/launch/directed_assembly_cam.launch"> 
+    <include file="$(find plane_camera_magnet)/launch/directed_assembly_cam.launch"> 
             <arg name="device" value="14434226"/>
     </include>
     <node   pkg="image_proc"

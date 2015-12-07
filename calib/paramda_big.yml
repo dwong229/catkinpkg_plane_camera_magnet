@@ -1,8 +1,8 @@
 %YAML:1.0
 Threshold: 35
 ceilingThreshold: 255
-minArea: 50
-maxArea: 100
+minArea: 100
+maxArea: 300
 minConvexity: 0.1
 maxConvexity: 10
 minInertiaRatio: 0
