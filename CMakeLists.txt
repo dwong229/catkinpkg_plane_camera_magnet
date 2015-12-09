@@ -227,3 +227,9 @@ target_link_libraries(joycoil
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(dadiscvisualization src/dadiscvisualization.cpp)
+target_link_libraries(dadiscvisualization
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

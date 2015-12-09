@@ -2,7 +2,7 @@
 	<node pkg="rosbag" 
 		type="play" 
 		name="rosbag" 
-		args="-l /home/denise/Dropbox/temp/image_color_rect_2015-11-16-13-39-11.bag"/>  
+		args="-l /home/denise/MacbookHome/Dropbox/temp/image_color_rect_2015-11-16-13-39-11.bag"/>  
 	<node   pkg="image_view" 
             name = "disp"
             type = "image_view" 
@@ -42,9 +42,16 @@
             <param name="camera_fps" value = "30.0"/>
             <param name="magidx" type="int" value="0" />
         </node>
+        <node name="dadiscvisualization"
+            pkg="plane_camera_magnet"
+            type="dadiscvisualization"
+            output="screen">
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dacalplane.yml"/>
+        </node>
         <node name="rviz"
             pkg="rviz"
             type="rviz"
             args="-d $(find plane_camera_magnet)/calib/damagnet.rviz">
         </node>
+
 </launch>
