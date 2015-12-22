@@ -38,7 +38,7 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.5
-      Cell Size: 5
+      Cell Size: 10
       Class: rviz/Grid
       Color: 160; 160; 164
       Enabled: true
@@ -82,13 +82,13 @@ Visualization Manager:
       Transport Hint: raw
       Value: true
     - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /kfpose_mag2/visualization_kfmarker
+      Enabled: true
+      Marker Topic: /dadiscvisualization/visualization_disc
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /closedloopfbpoint2mag/vis_goal
@@ -120,7 +120,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -0.005
+      Angle: -0.015
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
@@ -129,7 +129,7 @@ Visualization Manager:
         Value: false
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 15.8068
+      Scale: 6.91788
       Target Frame: camera_frame
       Value: TopDownOrtho (rviz)
       X: -4.08273

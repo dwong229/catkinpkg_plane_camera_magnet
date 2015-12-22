@@ -25,22 +25,16 @@ public:
     void disccb(const plane_camera_magnet::xyPix& msg) {
 
         
-        ROS_INFO_STREAM("msg: " << msg.magx[0] << " , " << msg.magy[0]);
+        //ROS_INFO_STREAM("msg: " << msg.magx[0] << " , " << msg.magy[0]);
         
-        //convert to mm
-        double xyWorldX;
-        double xyWorldY;
-        xyWorldX = (msg.magx[0] - centerpixx)/pix2m;
-        xyWorldY = (msg.magy[0] + centerpixy)/pix2m;
-    
+
+        
+        //ROS_INFO_STREAM("msg: " << xyWorldX << " , " << xyWorldY);
 
         discmarker.header.seq = msg.header.seq;
         discmarker.header.stamp = msg.header.stamp;
         discmarker.header.frame_id = "camera_frame";
-        discmarker.type = visualization_msgs::Marker::CYLINDER;
-        discmarker.pose.position.x = xyWorldX;
-        discmarker.pose.position.y = xyWorldY;
-        discmarker.pose.position.z = 0.0;
+        discmarker.type = visualization_msgs::Marker::SPHERE_LIST;
         discmarker.pose.orientation.x = 0.0;
         discmarker.pose.orientation.y = 0.0;
         discmarker.pose.orientation.z = 0.0;
@@ -53,8 +47,21 @@ public:
         discmarker.color.g = 0.0;
         discmarker.color.b = 0.0;
 
+        discmarker.points.resize(msg.numrobot);
+        //convert to mm
+        geometry_msgs::Point p;
 
+        for(int i=0; i<msg.numrobot; i++)
+        {
+          geometry_msgs::Point p;
 
+          p.x = (msg.magx[i] - centerpixx)/pix2m;
+          p.y = (-msg.magy[i] + centerpixy)/pix2m;
+          p.z = 0;
+          discmarker.points[i] = p;
+        }
+        
+        
         discmarker_pub_.publish(discmarker);
     }
 

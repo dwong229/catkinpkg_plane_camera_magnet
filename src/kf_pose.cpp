@@ -144,8 +144,8 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     kfline_list.type = visualization_msgs::Marker::LINE_LIST;
 
     // POINTS markers use x and y scale for width/height respectively
-    kfpoints.scale.x = 0.5;
-    kfpoints.scale.y = 0.5;
+    kfpoints.scale.x = 1.5;
+    kfpoints.scale.y = 1.5;
     rawpoints.scale.x = 0.1;
     rawpoints.scale.y = 0.1;
 
@@ -166,7 +166,7 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     }
 
 
-    kfline_list.color.r = 1.0;
+    kfline_list.color.b = 1.0;
     kfline_list.color.a = 1.0;
 
     rawpoints.color.g = 0.0f;

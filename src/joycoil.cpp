@@ -27,7 +27,7 @@ public:
         ////translate_with_joy(msg, diff);
         // update current position
         double joy_orientation;
-        int maxpwm = 8000; //655359;
+        int maxpwm = 40000; //655359;
         // map x to coil 1 & 3
         if(std::abs(msg.axes.at(axis_Lx))>zerocheck){
             roboclawCmdDesired.m1 = -maxpwm*msg.axes.at(axis_Lx)*(signbit(msg.axes.at(axis_Lx))-1);

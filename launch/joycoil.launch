@@ -9,11 +9,6 @@
         type="joycoil"
         output="screen">
     </node>
-    <node name="rviz"
-        pkg="rviz"
-        type="rviz"
-        args="-d $(find plane_camera_magnet)/calib/joymagnet.rviz">
-    </node>
     <node name="v5roboclawlisten_pub"
         pkg ="plane_camera_magnet"
         type = "v5roboclawlisten_pub.py"
