@@ -6,20 +6,22 @@
 #include <Eigen/Geometry>
 #include <visualization_msgs/Marker.h> //for rvis visualization
 #include <math.h>
+#include <plane_camera_magnet/xyPix.h>
 
 typedef Eigen::Vector3d Vec3;
 
 using namespace std;
 
 static ros::Publisher joymarker_pub;
-
-
+static ros::Publisher joyxyPix_pub;
 
 class MagnetJoy {
 public:
     void publish_to_rviz() {
         
         joymarker_pub.publish(joyarrow);
+        joyxyPix_pub.publish(joyxyPix);
+
     }
 
     void publish_marker_update(const sensor_msgs::Joy &msg) {
@@ -74,6 +76,12 @@ public:
         joyarrow.color.g = 1.0;
         joyarrow.color.b = 0.0;
         joymarker_pub_.publish(joyarrow);
+        joyxyPix_pub_.publish(joyxyPix);
+
+        //publish xyPix
+        joyxyPix.magx.assign(1,magnet_position(0));
+        joyxyPix.magy.assign(1,magnet_position(1));
+        joyxyPix.angle.assign(1,magnet_orientation);
     }
 
     
@@ -96,14 +104,19 @@ public:
     MagnetJoy() {
         joy_sub_ = n_.subscribe("/joy", 20, &MagnetJoy::joyCB, this);
         joymarker_pub_ = n_.advertise<visualization_msgs::Marker>("visualization_joy", 1, this);
+        joyxyPix_pub_ = n_.advertise<plane_camera_magnet::xyPix>("joy_xypix", 1,this);
+
     }
+
 
 private:
   ros::NodeHandle n_{"~"};
   ros::Subscriber joy_sub_;
   ros::Publisher joymarker_pub_;
+  ros::Publisher joyxyPix_pub_;
 
   visualization_msgs::Marker joyarrow;
+  plane_camera_magnet::xyPix joyxyPix;
 
   double magnet_orientation{0.0};
   Vec3 magnet_position{Vec3::Zero()};
