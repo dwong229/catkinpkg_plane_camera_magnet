@@ -233,3 +233,9 @@ target_link_libraries(dadiscvisualization
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(test_solveI_desiredBF src/test_solveI_desiredBF.cpp)
+target_link_libraries(test_solveI_desiredBF
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
