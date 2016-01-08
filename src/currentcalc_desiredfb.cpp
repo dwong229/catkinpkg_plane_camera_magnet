@@ -1,4 +1,5 @@
 // Listen to joystick desired position and angle:
+//rqt_plot currentcalc_desiredfb/roboclawcmddesired/m1:m2:m3:m4
 
 #include <ros/ros.h>
 #include <plane_camera_magnet/xyPix.h>
@@ -54,20 +55,10 @@ public:
         magnet.Fy = 0. * pow(10,-8); // need to update this
         th = msg.angle[0];
 
-
-        coil.d = .0575;
-        coil.R = 0.075;
-
-   /*magnet.x =  0.01;
-   magnet.y =  0.0;
-   magnet.Fx = 1 * pow(10,-8);
-   magnet.Fy = 1.* pow(10,-8);*/
-        magnet.gamma = 35.8 * pow(10,-6);
-
         //ROS_INFO_STREAM("X: " << magnet.x);
 
-        double Bx = Bmag * cos(th);
-        double By = Bmag * sin(th);
+        double Bx = Bmag * cos(th) - Bearth[0];
+        double By = Bmag * sin(th) - Bearth[1];
 
         Vector2d mvec(Bx,By);
         mvec = magnet.gamma/sqrt(Bx * Bx + By * By)*mvec;
@@ -92,9 +83,16 @@ public:
         Vector4d BF;
         BF << Bx,By,magnet.Fx,magnet.Fy;
         //cout << "BF: " << endl << BF << endl;
-        Vector4d Isolve = A.inverse() * BF;
-        ROS_INFO_STREAM("I: " << Isolve);
+        double Iscale = 2000;
+        Vector4d Isolve = A.inverse() * BF *Iscale;
         
+        ROS_INFO_STREAM("I: " << Isolve.transpose());
+
+        
+        // check:
+        Vector4d bfcheck;
+        bfcheck = A*Isolve;
+        ROS_INFO_STREAM("bfcheck: " << bfcheck.transpose());
 
         // save current to roboclaw msg
         roboclawDesired.header.stamp = ros::Time::now();
@@ -132,6 +130,11 @@ public:
         // roboclaw
         roboclaw_pub_ = n_.advertise<plane_camera_magnet::roboclawCmd>("roboclawcmddesired",1);
 
+        // Constants
+        Bearth << -0.00004,0.; // -40 uT
+        coil.d = .0575;
+        coil.R = 0.075;
+        magnet.gamma = 35.8 * pow(10,-6);    
     }
 
 private:
@@ -149,9 +152,11 @@ private:
   double th;
   double Bx,By;
 
+  Vector2d Bearth;
   // constants
   const double Bmag = 100. * pow(10,-6);  // Tesla
   
+
    
 
 };
