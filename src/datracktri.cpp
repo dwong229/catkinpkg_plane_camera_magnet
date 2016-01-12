@@ -83,7 +83,7 @@ public:
     xyMagnet_pub_ = nh_.advertise<plane_camera_magnet::xyPix>("xyPix",1);
     
     // nh_.param("/magnet_track/calib_file", cal_file, std::string("cal.yml"));
-    visualize = 0;
+    visualize = 1;
     
     std::string cal_file;    
     nh_.param("cal_file", cal_file, std::string("cal.yml"));

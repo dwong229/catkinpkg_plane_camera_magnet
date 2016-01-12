@@ -55,10 +55,10 @@ def callback(desiredcmd):
     #print ("Coil3: ", desiredcmd.m3)
     #print ("Coil4: ", desiredcmd.m4)    
     
-    rate = rospy.Rate(10) #Hz
+    rate = rospy.Rate(20) #Hz
 
     minval = 2
-    maxval = 10000
+    maxval = 30000
 
     # bound value of pwm assignment
     # sign of pwm

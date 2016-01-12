@@ -1,0 +1,19 @@
+<launch>
+    <node name="joy_node"
+        pkg="joy" 
+        type = "joy_node"
+        output="screen">
+    </node>    
+    <node name="dacontrollerposefeedback"
+	pkg="plane_camera_magnet"
+	type="dacontrollerposefeedback"
+	output="screen">
+    </node>
+    <node name="v5roboclawlisten_pub"
+        pkg ="plane_camera_magnet"
+        type = "v5roboclawlisten_pub.py"
+        output = "screen">
+        <remap from="/closedloopfbpoint/roboclawcmddesired" to="/dacontrollerposefeedback/roboclawcmddesired"/>
+    </node>
+</launch>
+

@@ -83,7 +83,7 @@ public:
     xyMagnet_pub_ = nh_.advertise<plane_camera_magnet::xyPix>("xyPix",1);
     
     // nh_.param("/magnet_track/calib_file", cal_file, std::string("cal.yml"));
-    visualize = 1;
+    visualize = 0;
     
     std::string cal_file;    
     nh_.param("cal_file", cal_file, std::string("cal.yml"));
@@ -193,7 +193,7 @@ public:
     //cvtColor(cv_ptr->image, drawing, CV_GRAY2RGB);
     if (contours.size() == 0){
       nodetectioncount += 1;
-      cout << "No detection " << nodetectioncount << endl;
+      //cout << "No detection " << nodetectioncount << endl;
       
     }
     
@@ -263,7 +263,7 @@ public:
     xymsg.numrobot = count;
 
     if (contours.size()<1)
-      cout<<"No blobs detected.  Turn on light?" << endl;
+      //cout<<"No blobs detected.  Turn on light?" << endl;
     // Output position vector
     xyMagnet_pub_.publish(xymsg);
   }

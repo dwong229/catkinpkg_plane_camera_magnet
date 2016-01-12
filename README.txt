@@ -11,6 +11,14 @@ B. Run expt with tracking of triangle and pink fluoro + rviz
 	
   Important topics: 
 	- rosbag record --lz4 /pg_14434226/image_rect_color 
-	- rosbag record --lz4 /pg_14434226/image_rect_color /roboclawcommand /kf_pose/magnetactual /datrackdisc/xyPix
+	- rosbag record --lz4 /pg_14434226/image_rect_color /roboclawcommand /kf_pose/magnetactual /joy
 
 * smaller magnet, may need to increase the strength of the electromagnetic coil - 
+
+
+For joystick control:
+
+
+rqt plot for the current:
+	- rqt_plot currentcalc_desiredfb/roboclawcmddesired/m1:m2:m3:m4
+

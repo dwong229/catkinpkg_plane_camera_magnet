@@ -239,3 +239,9 @@ target_link_libraries(test_solveI_desiredBF
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(currentcalc_desiredfb src/currentcalc_desiredfb.cpp)
+target_link_libraries(currentcalc_desiredfb
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
