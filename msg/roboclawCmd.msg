@@ -8,3 +8,7 @@ int16 m4
 float64[] xdes
 float64[] ydes
 uint8 numrobot
+float64 bx
+float64 by
+float64 fx
+float64 fy

@@ -18,7 +18,6 @@
 #include <vector>
 #include <typeinfo>
 #include <Eigen/LU>
-//#include <unsupported/Eigen/NonLinearOptimization>
 #include "currentcompute.h"
 
 using namespace std;
@@ -26,13 +25,6 @@ using namespace std;
 static ros::Publisher roboclaw_pub;
 
 #define PI 3.14159265
-
-// Listen to xyPix results: data.magx [mm], data.magy [mm], data.angle [rad]
-
-// Port data to x,y,th for computing I
-
-// Compute I
-
 
 class ComputeCurrent{
 public:
@@ -58,9 +50,8 @@ public:
         //if(std::abs(joymsg.axes.at(axis_Ly))>zerocheck)
             //magnet_joy.Fy = joymsg.axes.at(axis_Ly) * pow(10,-8);
 
-
-        magnet_joy.Fx = -joymsg.axes.at(axis_crossx) * pow(10,-7); //desired force from joystick
-        magnet_joy.Fy = joymsg.axes.at(axis_crossy) * pow(10,-7); //desired force from joystick
+        magnet_joy.Fx = -alphaF*joymsg.axes.at(axis_crossx) * Fmag + (1-alphaF)*last_F[0]; //desired force from joystick
+        magnet_joy.Fy =  alphaF*joymsg.axes.at(axis_crossy) * Fmag + (1-alphaF)*last_F[1]; //desired force from joystick
 
         if(std::abs(joymsg.axes.at(axis_Rx))>zerocheck ||std::abs(joymsg.axes.at(axis_Ry))>zerocheck){
             joy_orientation = atan2(joymsg.axes.at(axis_Ry),-joymsg.axes.at(axis_Rx));
@@ -68,14 +59,15 @@ public:
             double a,b,c,d,diffang,angstepsize;
             a = cos(magnet_orientation); 
             b = -sin(magnet_orientation); //flip sign for flipped x in joy.
+            
             c = cos(joy_orientation); //-msg.axes.at(axis_Rx)
             d = sin(joy_orientation); //msg.axes.at(axis_Ry)
             diffang = atan2(b*c + a*d,a*c-b*d);
-            angstepsize = 0.0175*5;
+            angstepsize = 0.0175*3; //
             if(std::abs(diffang)>angstepsize){
                 ROS_INFO_STREAM("joy_orientation: " << joy_orientation);
                 ROS_INFO_STREAM("diffang: " << diffang);
-                magnet_orientation += copysign(angstepsize,diffang); //1 deg per update)
+                magnet_orientation += copysign(angstepsize,diffang); //angstepsize rad per update
             }
             else{
                 magnet_orientation = joy_orientation;
@@ -113,43 +105,62 @@ public:
         BF << Bx,By,magnet_joy.Fx,magnet_joy.Fy;
 
         //cout << "BF: " << endl << BF << endl;
-        double Iscale = 1500;
         Vector4d Isolve = A.inverse() * BF *Iscale;
               
         // check:
         Vector4d bfcheck;
         bfcheck = A*Isolve;
 
-
-        // save current to roboclaw msg
         roboclawDesired.header.stamp = ros::Time::now();
         roboclawDesired.header.seq = joymsg.header.seq;
-        roboclawDesired.m1 = Isolve[0];
-        roboclawDesired.m2 = Isolve[1];
-        roboclawDesired.m3 = Isolve[2];
-        roboclawDesired.m4 = Isolve[3];
+        // save bf:
+        roboclawDesired.bx = Bx;
+        roboclawDesired.by = By;
+        roboclawDesired.fx = magnet_joy.Fx;
+        roboclawDesired.fy = magnet_joy.Fx;
+        
+
+
+        Vector4d tempdI = (last_I - Isolve).cwiseAbs();
+        double maxdiffI = tempdI.maxCoeff();
+
+        if( maxdiffI < maxdiffIthresh ) {// large enough diff:{}
+        // save current to roboclaw msg
+            roboclawDesired.m1 = Isolve[0];
+            roboclawDesired.m2 = Isolve[1];
+            roboclawDesired.m3 = Isolve[2];
+            roboclawDesired.m4 = Isolve[3];
+
+        }
+        else{
+            cout << "Large current jump, set current to 0" << endl;
+            nullroboclawDesired();
+        }
         
         ROS_INFO_STREAM("(x,y): " << magnet_actual.x << " , " << magnet_actual.y);
         ROS_INFO_STREAM("bfdesired: " << BF.transpose());
 
         if(magnet_joy.Fx==0 && magnet_joy.Fy ==0 && std::abs(joymsg.axes.at(axis_Rx))<zerocheck && std::abs(joymsg.axes.at(axis_Ry))<zerocheck){
             cout << "No inputs.  Coils off." << endl;
-            roboclawDesired.m1 = 0.0;
-            roboclawDesired.m2 = 0.0;
-            roboclawDesired.m3 = 0.0;
-            roboclawDesired.m4 = 0.0;
+            nullroboclawDesired();
         }
-        else{
-            
+        else{   
             ROS_INFO_STREAM("bfcheck: " << bfcheck.transpose());
             ROS_INFO_STREAM("I: " << Isolve.transpose());
         }
 
         publish_to_roboclaw();
+        //update last F and last I
+        last_F[0] = magnet_joy.Fx;
+        last_F[1] = magnet_joy.Fy;
+        last_I = Isolve;
+    }
 
-
-
-
+    void nullroboclawDesired() {
+        roboclawDesired.m1 = 0.0;
+        roboclawDesired.m2 = 0.0;
+        roboclawDesired.m3 = 0.0;
+        roboclawDesired.m4 = 0.0;
     }
 
     void joyCB(const sensor_msgs::Joy &msg) {
@@ -177,8 +188,6 @@ public:
         }
     }
 
-    
-
     ComputeCurrent() {
         // subscriber and publishers:
         // xyPix: /joyickvisualization/joy_xypix 
@@ -205,21 +214,27 @@ private:
 
   geometry_msgs::Pose last_actual_;
   plane_camera_magnet::roboclawCmd roboclawDesired;
+  Vector4d last_I;
+
 
   // variables
   Coil coil;
   Magnet magnet_actual;
   Magnet magnet_joy;
   
+  double last_F[2] = {0,0};
+  const double alphaF = 0.5; //0-1
+
   double th;
   double Bx,By;
 
   Vector2d Bearth;
   // constants
   const double Bmag = 50. * pow(10,-6);  // Tesla
-
-    // joystick:
-
+  const double Fmag = 1 * pow(10,-7); //N
+  const double Iscale = 1500; // for current
+  const double maxdiffIthresh = 5000;
+   // joystick:
   double magnet_orientation{0.0};
   double zerocheck = 0.1;
   sensor_msgs::Joy last_joy_;
@@ -231,12 +246,9 @@ private:
   const int axis_Ry{4};
   const int axis_Lt{2};
   const int axis_Rt{5};
-  
   const int axis_crossy{7};
   const int axis_crossx{6};
   
-
-
   const int button_a{0};
   const int button_b{1};
   const int button_x{2};
