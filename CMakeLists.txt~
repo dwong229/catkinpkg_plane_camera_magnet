@@ -245,3 +245,9 @@ target_link_libraries(currentcalc_desiredfb
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(dacontrollerposefeedback src/dacontrollerposefeedback.cpp)
+target_link_libraries(dacontrollerposefeedback
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

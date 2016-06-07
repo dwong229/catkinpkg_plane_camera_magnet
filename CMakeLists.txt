@@ -251,3 +251,9 @@ target_link_libraries(dacontrollerposefeedback
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(joystick_noskid_rviz src/joystick_noskid_rviz.cpp)
+target_link_libraries(joystick_noskid_rviz
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
