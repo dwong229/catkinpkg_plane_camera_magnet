@@ -251,3 +251,15 @@ target_link_libraries(dacontrollerposefeedback
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(da_xaxis_fb src/da_xaxis_fb.cpp)
+target_link_libraries(da_xaxis_fb
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(da_diamond_fb src/da_diamond_fb.cpp)
+target_link_libraries(da_diamond_fb
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

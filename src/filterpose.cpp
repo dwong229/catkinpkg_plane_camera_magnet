@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <iomanip>
+#include <complex>
+#include <cmath>
 #include <opencv2/core/core.hpp>
 
 
@@ -22,6 +25,7 @@
 //#include "plane_camera_magnet/filter.h"
 
 using namespace std;
+//using namespace std::literals;
 using namespace cv;
 
 
@@ -47,8 +51,14 @@ class FilterPose
         vector<double> xyPixX;
         vector<double> xyPixY;
         vector<double> xyPixSize;
+        vector<double> xyPixAngradraw;
         vector<double> xyPixAngrad;
+        //vector<std::complex<double> > angWorldcomplex;
+        //vector<std::complex<double> > angWorldcomplexraw;
+        vector<double> xyPixAngradcameraframe;
+
         int numdetections;
+
 
 
         
@@ -57,6 +67,8 @@ class FilterPose
         double centerpixx;
         double centerpixy;
 
+        double th0;
+        bool initialflag;
         // lastposition
         vector<double> lastposex;
         vector<double> lastposey;
@@ -87,6 +99,10 @@ public:
 
         cout << "Click when ready to Initialize robots" << endl;
         cin.ignore(1);
+        initialflag = true; // to save th0. for single magnet only!
+        th0 = 0; //initial angle without applied fields (Bearth)
+
+
         // publish to xyFiltered
         xyFiltered_pub_ = nh_.advertise<plane_camera_magnet::xyFiltered>("xyFiltered",1);   
         // subscribe to xyPix
@@ -102,11 +118,36 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     xyPixX = data.magx;
     xyPixY = data.magy;
     xyPixSize = data.size;
-    xyPixAngrad = data.angle;
+    xyPixAngradcameraframe = data.angle; // - th0;
     numdetections = data.numrobot;
 
-    //cout << xyPixX[0] << "," << xyPixX[1] << endl;
+    /*xyPixAngrad.resize(xyPixAngradcameraframe.size());
 
+    for(int k=0; k < xyPixAngradcameraframe.size(); k++)
+    {
+        cout << "complexraw: " << xyPixAngradcameraframe.at(k) << endl;
+        xyPixAngrad.[k] = -1. * xyPixAngradcameraframe.at(k); // zero field alighns with Bearth = -PI
+        //angWorldcomplexraw.at(k) = std::exp(1i * -xyPixAngradcameraframe.at(k)); // zero field alighns with Bearth = -PI
+        cout << "complexraw: " << xyPixAngradcameraframe.at(k) << endl;
+    }
+
+*/    
+    // initializte th0:
+    if(initialflag == true){
+        //th0 = -xyPixAngrad.at(0);
+        th0 = -xyPixAngradcameraframe.at(0);
+        initialflag = false;
+        cout << "th0: " << th0 << endl;
+        cin.ignore(1);
+    }
+
+    // update xyPixAngrad.  As measured from world frame xaxis
+    xyPixAngrad.resize(xyPixAngradcameraframe.size());
+    for(int i=0; i < xyPixAngradcameraframe.size(); i++)
+    {
+        //xyPixAngrad[i] = WrapPosNegPI(xyPixAngradraw[i] - (th0)); // zero field alighns with Bearth = -PI
+        xyPixAngrad[i] = -xyPixAngradcameraframe[i] - (th0); // zero field alighns with Bearth = -PI
+    }
     // Initialize lastpose
     //cout << "posex size" << lastposex.size() << endl;
     if(lastposex.size() == 0){
@@ -247,16 +288,27 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     for (int i = 0; i<actrobot; i++)
     {
         // 2. Check angle and update
+        // check if the value jumped.
+        
+        //cout << lastposeang.at(i) << endl;
+        //ROS_INFO_STREAM("th: " << xyPixAngradraw[i] << "," << lastposeang[i]);
+        //double dtheta =
+        if(std::abs(xyPixAngradraw[i] - lastposeang[i]) > PI/2)
+        {
+           //cout << "Diff: " << std::abs(xyPixAngradraw[i] - lastposeang[i]) << endl;
+            xyPixAngradraw[i] += PI;
+        }
         //cout << "update" << endl;
         // 3. Update last pose
         lastposex.at(i) = xyPixXraw[i];
         lastposey.at(i) = xyPixYraw[i];
-        lastposeang.at(i) = xyPixAngradraw[i];
+        // round to +/- PI - use a custom mod function.
+        lastposeang.at(i) = WrapPosNegPI(xyPixAngradraw[i]);
         //cout << "lastpose" << endl;
         // 4. Convert to xySorted coords
         xyWorldX.at(i) = (xyPixXraw[i] - centerpixx)/pix2m;
         xyWorldY.at(i) = (-xyPixYraw[i] + centerpixy)/pix2m;
-        xyAngledeg.at(i) = xyPixAngradraw[i] * 180.0/PI;
+        xyAngledeg.at(i) = lastposeang.at(i) * 180.0/PI;
         
         xyPixSizeVector.at(i) = xyPixSizeraw[i];
         minidxVector.at(i) = minidx[i];
@@ -292,6 +344,54 @@ void xyPixcallback(const plane_camera_magnet::xyPix& data)
     xymsg.xyWorldY = xyWorldY;
 
     xyFiltered_pub_.publish(xymsg);
+}
+
+
+double Mod(double x, double y)
+{
+    //static_assert(!std::numeric_limits<T>::is_exact , "Mod: floating-point type expected");
+
+    if (0. == y)
+        return x;
+
+    double m= x - y * floor(x/y);
+
+    // handle boundary cases resulted from floating-point cut off:
+
+    if (y > 0)              // modulo range: [0..y)
+    {
+        if (m>=y)           // Mod(-1e-16             , 360.    ): m= 360.
+            return 0;
+
+        if (m<0 )
+        {
+            if (y+m == y)
+                return 0  ; // just in case...
+            else
+                return y+m; // Mod(106.81415022205296 , _TWO_PI ): m= -1.421e-14 
+        }
+    }
+    else                    // modulo range: (y..0]
+    {
+        if (m<=y)           // Mod(1e-16              , -360.   ): m= -360.
+            return 0;
+
+        if (m>0 )
+        {
+            if (y+m == y)
+                return 0  ; // just in case...
+            else
+                return y+m; // Mod(-106.81415022205296, -_TWO_PI): m= 1.421e-14 
+        }
+    }
+
+    return m;
+}
+
+// wrap [rad] angle to [-PI..PI)
+double WrapPosNegPI(double fAng)
+{
+    return Mod(fAng + PI, 2*PI) - PI;
 }
 
 void printarray (double arg[], int length) {

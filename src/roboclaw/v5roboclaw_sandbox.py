@@ -6,15 +6,25 @@ import roboclaw
 #Linux comport name
 roboclaw.Open("/dev/roboclaw0",38400)
 
-testversion = 0
+testversion = 1
 commands = 1
 
+# DO NOT USE THESE OPTIONS TO 
 # set to multi-unit mode:
+# Using this will reset all options each time, so 
+# you cannot set more than one option (e.g. address and stat).  
 #roboclaw.SetConfig(0x80,0x8000)
-#roboclaw.SetConfig(0x80,0x0060)
+#roboclaw.SetConfig(0x81,0x0060)
 #time.sleep(0.5)
 #roboclaw.SetConfig(0x81,0x8000)
 #time.sleep(0.5)
+
+# Instead, use buttons on device.
+# Stat1: Set mode to 7 or 8 (depending on address),   
+# Stat2: RC and Analog Mode options 4 (TTL Flip and Exp and MCU Enabled)
+# Lipo: 1.
+
+# Also ensure you have a good connection to coils.
 
 config = roboclaw.GetConfig(0x80)
 print "13config: ", format(config[1],'02x')

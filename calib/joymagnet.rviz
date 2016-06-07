@@ -81,13 +81,13 @@ Visualization Manager:
       Transport Hint: raw
       Value: false
     - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /kfpose_mag2/visualization_kfmarker
+      Enabled: true
+      Marker Topic: /kf_pose/visualization_kfmarker
       Name: Marker
       Namespaces:
-        {}
+        raw_kf_points: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /closedloopfbpoint2mag/vis_goal
@@ -167,4 +167,4 @@ Window Geometry:
     collapsed: false
   Width: 1855
   X: 55
-  Y: 19
+  Y: 14

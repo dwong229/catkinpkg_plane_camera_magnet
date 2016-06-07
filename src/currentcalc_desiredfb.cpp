@@ -83,7 +83,7 @@ public:
         Vector4d BF;
         BF << Bx,By,magnet.Fx,magnet.Fy;
         //cout << "BF: " << endl << BF << endl;
-        double Iscale = 2000;
+        double Iscale = 1000;
         Vector4d Isolve = A.inverse() * BF *Iscale;
         
         ROS_INFO_STREAM("I: " << Isolve.transpose());

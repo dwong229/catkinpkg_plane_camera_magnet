@@ -42,6 +42,7 @@ global pwm, stepsize, toggle
 pwm = np.array([0,0,0,0])
 maxpwmval = 32767
 stepsize = maxpwmval/4;
+stepsize = 1000;
 toggle = np.array([1.0])
 
 class _Getch:
