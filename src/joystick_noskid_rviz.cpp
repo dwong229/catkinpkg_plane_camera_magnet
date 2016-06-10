@@ -34,12 +34,32 @@ public:
         double joy_orientation;
         double joyx;
         double joyy;
+        int buttonflag;
+
+        buttonflag = 0;
+
         if(std::abs(msg.axes.at(axis_Lx))>zerocheck)
             joyx = -msg.axes.at(axis_Lx);
 
         //    magnet_position(0) -= msg.axes.at(axis_Lx);
         if(std::abs(msg.axes.at(axis_Ly))>zerocheck)
             joyy = msg.axes.at(axis_Ly);
+
+        /*
+        if(msg.buttons.at(button_a)==1){
+            buttonflag = 1;
+        }
+        else if(msg.buttons.at(button_b)==1){
+            buttonflag = 1;
+        }
+        else if(msg.buttons.at(button_y)==1){
+            buttonflag = 1;
+        }
+        else if(msg.buttons.at(button_x)==1){
+            buttonflag = 1;
+        }
+        */
+        buttonflag = msg.buttons.at(button_a) + msg.buttons.at(button_b) + msg.buttons.at(button_y) + msg.buttons.at(button_x);
 
         //        magnet_position(1) += msg.axes.at(axis_Ly);
         
@@ -58,8 +78,8 @@ public:
             unitforcedesired.x = 0.0;
             unitforcedesired.y = 0.0;   
         }
-        unitforcedesired.z = 0.0;
-
+        unitforcedesired.z = buttonflag;
+        buttonflag = 0;
 
 
         /*
@@ -129,7 +149,8 @@ public:
             last_joy_.header = msg.header;
             last_joy_.axes = msg.axes;
         for (int i = 0; i < last_joy_.buttons.size(); i++)
-            last_joy_.buttons.at(i) |= msg.buttons.at(i);
+            {//last_joy_.buttons.at(i) |= msg.buttons.at(i);  //constant flag if button pressed
+            last_joy_.buttons.at(i) = msg.buttons.at(i);}
         }
     }
 
@@ -175,7 +196,7 @@ private:
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "joystickvisualization");
+    ros::init(argc, argv, "joystick_noskid");
     ros::NodeHandle n("~");
 
     MagnetJoy mj;   
