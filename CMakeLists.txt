@@ -1,0 +1,267 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(plane_camera_magnet)
+
+add_definitions("-std=c++11 -Werror=return-type")
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
+  image_transport
+  message_runtime
+  roscpp
+  sensor_msgs
+  std_msgs
+  message_generation
+  rospy
+  cmake_modules
+  tf
+  visualization_msgs
+)
+find_package(OpenCV REQUIRED)
+find_package(flycapture)
+find_package(Boost REQUIRED COMPONENTS thread)
+find_package(Eigen REQUIRED)
+include_directories(${Eigen_INCLUDE_DIRS})
+
+## Generate messages in the 'msg' folder
+add_message_files(
+   FILES
+   xyPix.msg
+   roboclawCmd.msg
+   xyFiltered.msg
+   PositionCommand.msg
+   nonlinearsolversoln.msg
+ )
+
+## Generate added messages and services with any dependencies listed here
+ generate_messages(
+   DEPENDENCIES
+   sensor_msgs
+   #std_msgs
+ )
+
+###################################
+## catkin specific configuration ##
+###################################
+## The catkin_package macro generates cmake config files for your package
+## Declare things to be passed to dependent projects
+## INCLUDE_DIRS: uncomment this if you package contains header files
+## LIBRARIES: libraries you create in this project that dependent projects also need
+## CATKIN_DEPENDS: catkin_packages dependent projects also need
+## DEPENDS: system dependencies of this project that dependent projects also need
+catkin_package(
+#   INCLUDE_DIRS include
+#   LIBRARIES plane_camera_magnet
+   CATKIN_DEPENDS message_runtime
+   CATKIN_DEPENDS cv_bridge image_transport message_runtime roscpp sensor_msgs std_msgs
+#  DEPENDS system_lib
+)
+
+###########
+## Build ##
+###########
+
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+# include_directories(include)
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}	
+  include
+)
+
+## Declare a cpp library
+ add_library(plane_camera_magnet
+#   src/${PROJECT_NAME}/plane_camera_magnet.cpp
+   src/hw4_helpers.cpp
+   src/filter.cpp
+   src/trajectory.cpp
+   src/currentcompute.cpp
+ )
+target_link_libraries(plane_camera_magnet ${OpenCV_LIBS} ${catkin_LIBRARIES})
+## Declare a cpp executable
+# add_executable(plane_camera_magnet_node src/plane_camera_magnet_node.cpp)
+
+add_executable(track_rod src/track_rod.cpp)
+target_link_libraries(track_rod
+  ${catkin_LIBRARIES}
+)
+
+add_executable(track_rod_orient src/track_rod_orient.cpp)
+target_link_libraries(track_rod_orient
+  ${catkin_LIBRARIES}
+)
+
+#add_executable(track_circle src/track_circle.cpp)
+#target_link_libraries(track_rod_orient
+#  ${catkin_LIBRARIES}
+#)
+
+add_executable(cal_plane_coils src/cal_plane_coils.cpp)
+target_link_libraries(cal_plane_coils
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(visualization_pixels src/visualization_pixels.cpp)
+target_link_libraries(visualization_pixels
+  ${catkin_LIBRARIES}
+)
+
+add_executable(eigensandbox src/eigensandbox.cpp)
+target_link_libraries(eigensandbox
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(filterpose src/filterpose.cpp)
+target_link_libraries(filterpose
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(visualization_filtered src/visualization_filtered.cpp)
+target_link_libraries(visualization_filtered
+  ${catkin_LIBRARIES}
+)
+
+add_executable(kf_pose src/kf_pose.cpp)
+target_link_libraries(kf_pose
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(check_cal_plane_coils src/check_cal_plane_coils.cpp)
+target_link_libraries(check_cal_plane_coils
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(test_trajreading src/test_trajreading.cpp)
+target_link_libraries(test_trajreading
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(boostsandbox src/boostsandbox.cpp)
+target_link_libraries(boostsandbox
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(test_currentcompute src/test_currentcompute.cpp)
+target_link_libraries(test_currentcompute
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(closedloopfbpoint src/closedloopfbpoint.cpp)
+target_link_libraries(closedloopfbpoint
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(closedloopfbtraj src/closedloopfbtraj.cpp)
+target_link_libraries(closedloopfbtraj
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(closedloopfbpoint2mag src/closedloopfbpoint2mag.cpp)
+target_link_libraries(closedloopfbpoint2mag
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(keyboard2mag src/keyboard2mag.cpp)
+target_link_libraries(keyboard2mag
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(currentcalc_bruteforce src/currentcalc_bruteforce.cpp)
+target_link_libraries(currentcalc_bruteforce
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(closedloopfbtraj2mag src/closedloopfbtraj2mag.cpp)
+target_link_libraries(closedloopfbtraj2mag
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(threshold src/threshold.cpp)
+target_link_libraries(threshold
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(datrackdisc src/datrackdisc.cpp)
+target_link_libraries(datrackdisc
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(datracktri src/datracktri.cpp)
+target_link_libraries(datracktri
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(dacheck_cal_plane_coils src/dacheck_cal_plane_coils.cpp)
+target_link_libraries(dacheck_cal_plane_coils
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(joystickvisualization src/joystickvisualization.cpp)
+target_link_libraries(joystickvisualization
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(joycoil src/joycoil.cpp)
+target_link_libraries(joycoil
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(dadiscvisualization src/dadiscvisualization.cpp)
+target_link_libraries(dadiscvisualization
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(test_solveI_desiredBF src/test_solveI_desiredBF.cpp)
+target_link_libraries(test_solveI_desiredBF
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(currentcalc_desiredfb src/currentcalc_desiredfb.cpp)
+target_link_libraries(currentcalc_desiredfb
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(dacontrollerposefeedback src/dacontrollerposefeedback.cpp)
+target_link_libraries(dacontrollerposefeedback
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(da_xaxis_fb src/da_xaxis_fb.cpp)
+target_link_libraries(da_xaxis_fb
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+
+add_executable(joystick_noskid_rviz src/joystick_noskid_rviz.cpp)
+target_link_libraries(joystick_noskid_rviz
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
