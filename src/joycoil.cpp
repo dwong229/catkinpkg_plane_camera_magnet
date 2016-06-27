@@ -104,7 +104,7 @@ public:
             last_joy_.header = msg.header;
             last_joy_.axes = msg.axes;
         for (int i = 0; i < last_joy_.buttons.size(); i++)
-            last_joy_.buttons.at(i) |= msg.buttons.at(i);
+            last_joy_.buttons.at(i) = msg.buttons.at(i);
         }
     }
     CoilJoy() {

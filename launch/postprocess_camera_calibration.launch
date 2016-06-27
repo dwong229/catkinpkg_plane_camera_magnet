@@ -1,0 +1,20 @@
+<launch>
+	<node 	pkg="image_view" 
+			name = "disp"
+			type = "image_view" 
+			args="image:=/pg_14434226/image_rect" >
+	</node>
+	<node name="track_rod_orient"
+	 	 	pkg="plane_camera_magnet" 
+			type = "track_rod_orient"
+			output="screen">
+			<param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal12801026.yml"/>
+			<param name="param_file" value = "$(find plane_camera_magnet)/calib/tri_cameracalibration.yml"/>
+	</node>
+	<node name="visualization_pixels"
+	 	 	pkg="plane_camera_magnet" 
+			type = "visualization_pixels"
+			output="screen">
+			<param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal12801026.yml"/>
+	</node>
+</launch>
