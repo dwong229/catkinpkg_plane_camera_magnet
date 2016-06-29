@@ -2,24 +2,17 @@
 	<node pkg="rosbag" 
 		type="play" 
 		name="rosbag" 
-		args="-l /home/denise/Dropbox/temp/image_color_rect_2015-11-16-13-39-11.bag"/>  
+		args="-l /home/denise/bagfiles/calmag/20160627/coil1_-3_3.bag"/>  
 	<node   pkg="image_view" 
             name = "disp"
             type = "image_view" 
             args="image:=/pg_14434226/image_rect_color" >
     	</node>
-   	<node name="datrackdisc"
-            pkg="plane_camera_magnet" 
-            type = "datrackdisc"
-            output="screen">
-            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calda.yml"/>
-            <param name="param_file" value = "$(find plane_camera_magnet)/calib/paramda.yml"/>
-    	</node>
 	<node name="datracktri"
             pkg="plane_camera_magnet" 
             type = "datracktri"
             output="screen">
-            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/calda.yml"/>
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal12801026.yml"/>
             <param name="param_file" value = "$(find plane_camera_magnet)/calib/paramda.yml"/>
     	</node>
 	<node name="rqt_image_view"

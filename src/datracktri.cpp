@@ -73,7 +73,7 @@ public:
   {
     // Subscribe to input video feed and publish output video feed
     
-    image_sub_ = it_.subscribe("/pg_14434226/image_rect_color", 1, 
+    image_sub_ = it_.subscribe("/pg_14434226/image_rect", 1, 
       &ImageConverter::imageCb, this);
     imageinter_pub_ = it_.advertise("intermediate_vid", 1);
     image_pub_ = it_.advertise("output_video", 1);
@@ -178,6 +178,7 @@ public:
     xymsg.header.frame_id = "/camera_frame";
     Mat threshold_output;
     vector<vector<Point> > contours;
+    vector<vector<Point> > approxContour;
     vector<Vec4i> hierarchy;
     // Detect edges using Threshold
     threshold( cv_ptr_mono->image, threshold_output, minThreshold, maxThreshold, THRESH_BINARY_INV );
@@ -192,12 +193,12 @@ public:
     // Find contours, each contour is stored as a vector of points
     Mat canny_output;
     int thresh = 100;
-    blur( threshold_output , threshold_output , Size(5,5) );
+    //blur( threshold_output , threshold_output , Size(5,5) );
     
-    threshold( threshold_output, threshold_output, 80, maxThreshold, THRESH_BINARY );
+    //threshold( threshold_output, threshold_output, 80, maxThreshold, THRESH_BINARY );
 
     Mat tmpBinaryImage = threshold_output.clone();
-    findContours( tmpBinaryImage, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, Point(0, 0) );
+    findContours( tmpBinaryImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
 
     Mat drawing = Mat::zeros( threshold_output.size(), CV_8UC3 );
     //cvtColor(cv_ptr->image, drawing, CV_GRAY2RGB);
@@ -212,16 +213,28 @@ public:
     vector<RotatedRect> minEllipse( contours.size() );
     vector<vector<Point> >hull( contours.size() );
     int count = 0;
+    
     // loop through each contour, filter, draw
     for( int i = 0; i < contours.size(); i++ )
      {// minRect[i] = minAreaRect( Mat(contours[i]) );
-       if( contours[i].size() > minArea && contours[i].size() < maxArea )
-         { 
-         //if (pow((minEllipse[i].center.y-ycenter),2) + pow((minEllipse[i].center.x-xcenter),2) < pow(radius,2.0) ) //&& minEllipse[i].size.area() < maxArea)
+       //if( contours[i].size() > minArea && contours[i].size() < maxArea )
+      double epsilon;
+      epsilon = 5;
+      approxContour.resize(contours.size());
+      approxPolyDP(contours[i], approxContour[i], epsilon, true );
+      
+      //if (pow((minEllipse[i].center.y-ycenter),2) + pow((minEllipse[i].center.x-xcenter),2) < pow(radius,2.0) ) //&& minEllipse[i].size.area() < maxArea)
+          if(approxContour[i].size() == 3) //check for triangle
           {
-            count = count + 1;
+            /*count = count + 1;
+            cout << " ---- " << count << "----" << endl;
+            cout << "Contours: " << contours[i] << endl;
+            cout << "approxContour: " << approxContour[i] << endl;
+            cout << "approxContour.size: " << approxContour[i].size() << endl;
+            */
             Point pt;
-            convexHull( Mat(contours[i]), hull[i], false ); //hull stores the hull points
+            //convexHull( Mat(contours[i]), hull[i], false ); //hull stores the hull points
+            convexHull( Mat(approxContour[i]), hull[i], false ); //hull stores the hull points
 
             //center of convex hull
             // Get the moments
@@ -234,14 +247,44 @@ public:
             pt.x = mc.x;
             pt.y = mc.y;
             
-            // compute angle by fitting an ellipse
-            minEllipse[i] = fitEllipse( Mat(contours[i]) );
+            // compute angle of triangle as perp to longest vertex:
+            double maxdist;
+            double tempdist;
+            int maxdistpt[2] = {0,1};
 
+            Point2f pt0(approxContour[i].at(0).x,approxContour[i].at(0).y); // pt 0
+            Point2f pt1(approxContour[i].at(1).x,approxContour[i].at(1).y); // pt 1
+            Point2f pt2(approxContour[i].at(2).x,approxContour[i].at(2).y); // pt 2
+
+            Point2f pt012[3] = {pt0,pt1,pt2};
+
+            maxdist = norm(pt0 - pt1);
+            
+            tempdist = norm(pt0-pt2);
+            if(tempdist > maxdist){
+              maxdist = tempdist;
+              maxdistpt[1] = 2;
+
+            }
+
+            tempdist = norm(pt1-pt2);
+            if(tempdist > maxdist){
+              maxdist = tempdist;
+              maxdistpt[0] = 2;
+            }
+
+            //calculate angle:
+            double angle = atan2(pt012[maxdistpt[0]].y-pt012[maxdistpt[1]].y,pt012[maxdistpt[0]].x-pt012[maxdistpt[1]].x);
+            cout << "pt one: " << pt012[maxdistpt[0]].x << " , " << pt012[maxdistpt[0]].y << endl;
+            cout << "pt two: " << pt012[maxdistpt[1]].x << " , " << pt012[maxdistpt[1]].y << endl;
+            cout << "angle: " << angle << endl;
+            //minEllipse[i] = fitEllipse( Mat(contours[i]) );
+            angle = angle * 180/PI;
             //save to ros msg
             xymsg.magx.push_back(pt.x);
             xymsg.magy.push_back(pt.y);
             xymsg.size.push_back(contourArea(hull[i]));
-            xymsg.angle.push_back(minEllipse[i].angle * PI/180);
+            xymsg.angle.push_back(angle * PI/180);
 
             //ROS_INFO_STREAM("ID " << i);
             //ROS_INFO_STREAM("Area " << contours[i].size());
@@ -255,11 +298,11 @@ public:
             }
             Scalar colorhull = Scalar(0,255,255);//Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
             //ellipse( drawing, minEllipse[i], color, 2, 8 );
-            drawContours( drawing, contours, i, color, CV_FILLED,8,hierarchy);
+            drawContours( drawing, approxContour, i, color, CV_FILLED,8,hierarchy);
             drawContours( drawing, hull, i, colorhull, 1, 8, vector<Vec4i>(), 0, Point() );
             circle( drawing, pt, 5, colorhull, 3, 8,0);          
-            MyLine(drawing, pt, minEllipse[i].angle);
-          }
+            MyLine(drawing, pt, angle);
+          
         }
      }
 
