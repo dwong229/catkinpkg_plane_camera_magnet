@@ -1,12 +1,16 @@
 <launch>
-	<node pkg="rosbag" 
-		type="play" 
-		name="rosbag" 
-		args="-l /home/denise/bagfiles/calmag/20160627/coil1_-3_3.bag"/>  
+    <include file="$(find plane_camera_magnet)/launch/directed_assembly_cam.launch"> 
+            <arg name="device" value="14434226"/>
+    </include>
+    <node   pkg="image_proc"
+            name="image_proc"
+            type="image_proc"
+            ns="pg_14434226">
+    </node>
 	<node   pkg="image_view" 
             name = "disp"
             type = "image_view" 
-            args="image:=/pg_14434226/image_rect_color" >
+            args="image:=/pg_14434226/image_rect" >
     	</node>
 	<node name="datracktri"
             pkg="plane_camera_magnet" 

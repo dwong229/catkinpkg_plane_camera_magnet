@@ -247,11 +247,13 @@ public:
             pt.x = mc.x;
             pt.y = mc.y;
             
+            //if( pow(pt.x - 640,2) + pow(pt.y - 513,2) < pow(50,2))
+            {
             // compute angle of triangle as perp to longest vertex:
             double maxdist;
             double tempdist;
             int maxdistpt[2] = {0,1};
-
+            int tip = 2;
             Point2f pt0(approxContour[i].at(0).x,approxContour[i].at(0).y); // pt 0
             Point2f pt1(approxContour[i].at(1).x,approxContour[i].at(1).y); // pt 1
             Point2f pt2(approxContour[i].at(2).x,approxContour[i].at(2).y); // pt 2
@@ -263,6 +265,7 @@ public:
             tempdist = norm(pt0-pt2);
             if(tempdist > maxdist){
               maxdist = tempdist;
+              tip = maxdistpt[1];
               maxdistpt[1] = 2;
 
             }
@@ -270,16 +273,30 @@ public:
             tempdist = norm(pt1-pt2);
             if(tempdist > maxdist){
               maxdist = tempdist;
+              tip = maxdistpt[0];
               maxdistpt[0] = 2;
             }
 
             //calculate angle:
             double angle = atan2(pt012[maxdistpt[0]].y-pt012[maxdistpt[1]].y,pt012[maxdistpt[0]].x-pt012[maxdistpt[1]].x);
-            cout << "pt one: " << pt012[maxdistpt[0]].x << " , " << pt012[maxdistpt[0]].y << endl;
-            cout << "pt two: " << pt012[maxdistpt[1]].x << " , " << pt012[maxdistpt[1]].y << endl;
-            cout << "angle: " << angle << endl;
+            //cout << "pt one: " << pt012[maxdistpt[0]].x << " , " << pt012[maxdistpt[0]].y << endl;
+            //cout << "pt two: " << pt012[maxdistpt[1]].x << " , " << pt012[maxdistpt[1]].y << endl;
+            cout << "angle: " << angle*180/PI<< endl;
             //minEllipse[i] = fitEllipse( Mat(contours[i]) );
+
+            // REMEMBER IMAGE COORDINATES!!! AHHHH!
+            double dangle[2] = {sin(angle), -cos(angle)};
+            double dtip[2] = {pt012[tip].x - pt.x, pt012[tip].y - pt.y};
+            double anglebetween = acos((dangle[0] * dtip[0] + dangle[1]*dtip[1])/(sqrt(dangle[0]*dangle[0] + dangle[1]*dangle[1])*sqrt(dtip[0]*dtip[0] + dtip[1]*dtip[1])));
+            //cout << "dangle: " << dangle[0] << " , " << dangle[1] << endl;
+            //cout << "dtip: " << dtip[0] << " , " << dtip[1] << endl;
+            //cout << "dangle: " << anglebetween << endl;
+
+            if(abs(anglebetween) > PI/2)
+              angle = angle + PI;
+
             angle = angle * 180/PI;
+
             //save to ros msg
             xymsg.magx.push_back(pt.x);
             xymsg.magy.push_back(pt.y);
@@ -302,7 +319,7 @@ public:
             drawContours( drawing, hull, i, colorhull, 1, 8, vector<Vec4i>(), 0, Point() );
             circle( drawing, pt, 5, colorhull, 3, 8,0);          
             MyLine(drawing, pt, angle);
-          
+          }
         }
      }
 
