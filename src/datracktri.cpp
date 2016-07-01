@@ -20,6 +20,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <plane_camera_magnet/xyPix.h>
 #include <tf/transform_broadcaster.h>
+#include "hw4.h"
 
 using namespace std;
 using namespace cv;
@@ -67,8 +68,15 @@ class ImageConverter
   sensor_msgs::ImagePtr imgintermediate;
   int nodetectioncount = 0;
 
+
+  bool firstimg = true;
+  // robot characteristics:
+  double angle_in_bearth;
+  double robothullsize; 
+
+
 public:
-  ImageConverter()
+  ImageConverter() //Initialization:, constructor
     :nh_("~") ,it_(nh_)
   {
     // Subscribe to input video feed and publish output video feed
@@ -85,6 +93,7 @@ public:
     // nh_.param("/magnet_track/calib_file", cal_file, std::string("cal.yml"));
     visualize = 1;
     
+    // unpack the calibration files for camera
     std::string cal_file;    
     nh_.param("cal_file", cal_file, std::string("cal.yml"));
     ROS_INFO_STREAM("cal file " << cal_file);
@@ -108,6 +117,7 @@ public:
   
     waitKey(1);
 
+    // unpack the calibration files for tracking - delete?
     std::string param_file;
     nh_.param("param_file", param_file, std::string("ellipseparam.yml"));
     ROS_INFO_STREAM("param file " << param_file);
@@ -118,8 +128,7 @@ public:
     minArea = (int)fs["minArea"]; 
     maxArea = (int)fs["maxArea"];
     //ROS_INFO_STREAM("maxArea " << maxArea);
-
-
+   
     if(visualize)
           cv::namedWindow(OPENCV_WINDOW);
   }//public
@@ -127,20 +136,54 @@ public:
   {
     cv::destroyWindow(OPENCV_WINDOW);
   }
+
+  int initializeRobot( Mat img, vector<vector<Point>> contours)
+  {
+    cout << "initialize Robot!" << endl;
+    cout << "Found: " << contours.size() << endl;
+
+    // display the image with contours identified
+    cv::namedWindow("ClickRobot");
+
+    // user to click inside the contour
+    Point pt = getClick("ClickRobot",img);
+
+    drawCross(img, pt, 5);
+    
+    // determine which contour is the robot and save the contour stats
+    int robotidx = -1;
+    int i = 0;
+    while(robotidx<0)
+    {
+      bool measuredist;
+      
+      if( pointPolygonTest(contours[i], pt, measuredist) > 0)  
+      {
+        cout << "Found contour: " << i << endl;
+        robotidx = i;
+      }
+      i++;
+    }
+    firstimg = false;
+    cout << "Initialization over." << endl;
+    cv::destroyWindow("ClickRobot");
+    return robotidx;
+  }
+
   void MyLine( Mat img, Point start, double angle )
   {
-  int thickness = 2;
-  int lineType = 8;
-  Point end;
-  int length = 40;
-  end.x = start.x + length*sin(angle*PI/180);
-  end.y = start.y - length*cos(angle*PI/180);
-  line( img,
-        start,
-        end,
-        Scalar( 0, 0, 255 ),
-        thickness,
-        lineType );
+    int thickness = 2;
+    int lineType = 8;
+    Point end;
+    int length = 40;
+    end.x = start.x + length*sin(angle*PI/180);
+    end.y = start.y - length*cos(angle*PI/180);
+    line( img,
+          start,
+          end,
+          Scalar( 0, 0, 255 ),
+          thickness,
+          lineType );
   }
   void imageCb(const sensor_msgs::ImageConstPtr& msg)
   {
@@ -166,7 +209,6 @@ public:
       return;
     }
     
-
     // process image
     blur( cv_ptr_mono->image , cv_ptr_mono->image , Size(4,4) );
 
@@ -179,6 +221,9 @@ public:
     Mat threshold_output;
     vector<vector<Point> > contours;
     vector<vector<Point> > approxContour;
+    vector<double> anglevec;
+    vector<double> hullvec;
+
     vector<Vec4i> hierarchy;
     // Detect edges using Threshold
     threshold( cv_ptr_mono->image, threshold_output, minThreshold, maxThreshold, THRESH_BINARY_INV );
@@ -221,6 +266,8 @@ public:
       double epsilon;
       epsilon = 5;
       approxContour.resize(contours.size());
+      anglevec.resize(contours.size());
+      hullvec.resize(contours.size());
       approxPolyDP(contours[i], approxContour[i], epsilon, true );
       
       //if (pow((minEllipse[i].center.y-ycenter),2) + pow((minEllipse[i].center.x-xcenter),2) < pow(radius,2.0) ) //&& minEllipse[i].size.area() < maxArea)
@@ -295,14 +342,12 @@ public:
             if(abs(anglebetween) > PI/2)
               angle = angle + PI;
 
-            angle = angle * 180/PI;
-
             //save to ros msg
             xymsg.magx.push_back(pt.x);
             xymsg.magy.push_back(pt.y);
             xymsg.size.push_back(contourArea(hull[i]));
-            xymsg.angle.push_back(angle * PI/180);
-
+            xymsg.angle.push_back(angle);
+            anglevec[i] = angle;
             //ROS_INFO_STREAM("ID " << i);
             //ROS_INFO_STREAM("Area " << contours[i].size());
             //cout << "x = " << pt.x << ", y = " << pt.y << " size hull = " << contourArea(hull[i]) <<" angle = " << minEllipse[i].angle << endl;
@@ -318,7 +363,7 @@ public:
             drawContours( drawing, approxContour, i, color, CV_FILLED,8,hierarchy);
             drawContours( drawing, hull, i, colorhull, 1, 8, vector<Vec4i>(), 0, Point() );
             circle( drawing, pt, 5, colorhull, 3, 8,0);          
-            MyLine(drawing, pt, angle);
+            MyLine(drawing, pt, angle*180/PI);
           }
         }
      }
@@ -326,6 +371,22 @@ public:
 
     sensor_msgs::ImagePtr imgout;
 
+    if(firstimg){
+      // Initialize the location of robots with a click:
+      int firstrobotidx = initializeRobot(drawing, contours);
+      angle_in_bearth = anglevec[firstrobotidx];
+      // area of robot
+      //robothullsize = abs(   )
+      
+      robothullsize = contourArea(Mat(approxContour[firstrobotidx]));
+      // last xy center of robot
+
+
+      cout << "Init Angle: " << angle_in_bearth << endl;
+      cout << "Robot size: " << robothullsize << endl;
+
+      cin.get();
+    }
       // Output modified video stream
       //image_pub_.publish(cv_ptr->toImageMsg());
       

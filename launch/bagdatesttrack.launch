@@ -1,0 +1,22 @@
+<launch>
+	<node pkg="rosbag" 
+		type="play" 
+		name="rosbag" 
+		args="-l /home/denise/Dropbox/Temp/coil1_-3.bag"/>  
+	<node   pkg="image_view" 
+            name = "disp"
+            type = "image_view" 
+            args="image:=/pg_14434226/image_rect" >
+    	</node>
+	<node name="datracktri"
+            pkg="plane_camera_magnet" 
+            type = "datracktri"
+            output="screen">
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal12801026.yml"/>
+            <param name="param_file" value = "$(find plane_camera_magnet)/calib/paramda.yml"/>
+    	</node>
+	<node name="rqt_image_view"
+	pkg="rqt_image_view"
+	type="rqt_image_view">
+	</node>
+</launch>
