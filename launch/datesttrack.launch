@@ -1,5 +1,5 @@
 <launch>
-    <include file="$(find plane_camera_magnet)/launch/directed_assembly_cam.launch"> 
+    <include file="$(find plane_camera_magnet)/launch/directed_assembly_monocam.launch"> 
             <arg name="device" value="14434226"/>
     </include>
     <node   pkg="image_proc"
@@ -16,11 +16,11 @@
             pkg="plane_camera_magnet" 
             type = "datracktri"
             output="screen">
-            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/cal12801026.yml"/>
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dahomography.yml"/>
             <param name="param_file" value = "$(find plane_camera_magnet)/calib/paramda.yml"/>
     	</node>
 	<node name="rqt_image_view"
-	pkg="rqt_image_view"
-	type="rqt_image_view">
+		pkg="rqt_image_view"
+		type="rqt_image_view">
 	</node>
 </launch>

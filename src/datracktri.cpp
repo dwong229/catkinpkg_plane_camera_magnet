@@ -19,6 +19,7 @@
 #include <cv_bridge/cv_bridge.h> 
 #include <sensor_msgs/image_encodings.h>
 #include <plane_camera_magnet/xyPix.h>
+#include <plane_camera_magnet/xyFiltered.h>
 #include <tf/transform_broadcaster.h>
 #include "hw4.h"
 
@@ -50,14 +51,10 @@ class ImageConverter
   image_transport::Publisher imageinter_pub_;
 
   ros::Publisher xyMagnet_pub_;
-  int ymin;
-  int ymax;
-  int xmin;
-  int xmax;
-  double L;
-  double mperpix;
-  double xcenter;
-  double ycenter;
+  ros::Publisher xySingleRobot_pub_;
+
+  Mat H;
+
   double radius;
   bool visualize;
   //cv::SimpleBlobDetector::Params params;
@@ -73,7 +70,7 @@ class ImageConverter
   // robot characteristics:
   double angle_in_bearth;
   double robothullsize; 
-
+  Point2f robotlastposn;
 
 public:
   ImageConverter() //Initialization:, constructor
@@ -88,8 +85,9 @@ public:
 
 
     //publish vector of magnet positions
-    xyMagnet_pub_ = nh_.advertise<plane_camera_magnet::xyPix>("xyPix",1);
-    
+    xyMagnet_pub_ = nh_.advertise<plane_camera_magnet::xyPix>("xyPixAll",1);
+    xySingleRobot_pub_ = nh_.advertise<plane_camera_magnet::xyFiltered>("xyPixRobot",1);
+
     // nh_.param("/magnet_track/calib_file", cal_file, std::string("cal.yml"));
     visualize = 1;
     
@@ -98,22 +96,8 @@ public:
     nh_.param("cal_file", cal_file, std::string("cal.yml"));
     ROS_INFO_STREAM("cal file " << cal_file);
     FileStorage fscal(cal_file.c_str(), FileStorage::READ);
-    ymin = (int)fscal["ymin"];
-    ymax = (int)fscal["ymax"];
-    xmin = (int)fscal["xmin"];
-    xmax = (int)fscal["xmax"];
-    L = (double)fscal["L"];
-    mperpix = L/(xmax-xmin);
-
-    xcenter = (xmax+xmin)/2;
-    ycenter = (ymax+ymin)/2;
-    radius = xmax-xcenter;
-
-    cout<< "ycenter: " << ycenter << endl;
-    cout<< "xcenter: " << xcenter << endl;
-    cout<< "radius: " <<radius << endl;
-    cout<< "L: " << L << endl;
-    cout<< "mperpix: " << mperpix << endl;
+    fscal["H"] >> H;
+    cout<< "H: " << H << endl;
   
     waitKey(1);
 
@@ -144,6 +128,9 @@ public:
 
     // display the image with contours identified
     cv::namedWindow("ClickRobot");
+
+    // show image:
+    cv::imshow( "ClickRobot", img ); 
 
     // user to click inside the contour
     Point pt = getClick("ClickRobot",img);
@@ -218,6 +205,14 @@ public:
     //xymsg.header.frame_id = msg->header.frame_id;
 
     xymsg.header.frame_id = "/camera_frame";
+
+    plane_camera_magnet::xyFiltered robotonly_xymsg; //publish
+    robotonly_xymsg.header.stamp = ros::Time::now();
+    //xymsg.header.frame_id = msg->header.frame_id;
+
+    robotonly_xymsg.header.frame_id = "/camera_frame";
+    
+
     Mat threshold_output;
     vector<vector<Point> > contours;
     vector<vector<Point> > approxContour;
@@ -229,9 +224,9 @@ public:
     threshold( cv_ptr_mono->image, threshold_output, minThreshold, maxThreshold, THRESH_BINARY_INV );
 
     if(visualize){
-    // convert image for transport:
-    imgintermediate = cv_bridge::CvImage(std_msgs::Header(), "mono8", threshold_output).toImageMsg();
-    imageinter_pub_.publish(imgintermediate);
+      // convert image for transport:
+      imgintermediate = cv_bridge::CvImage(std_msgs::Header(), "mono8", threshold_output).toImageMsg();
+      imageinter_pub_.publish(imgintermediate);
     }
 
     Mat threshold_outputstatic = threshold_output;
@@ -250,7 +245,6 @@ public:
     if (contours.size() == 0){
       nodetectioncount += 1;
       cout << "No detection " << nodetectioncount << endl;
-      
     }
     
     // Find the rotated rectangles and ellipse for each contour
@@ -328,7 +322,7 @@ public:
             double angle = atan2(pt012[maxdistpt[0]].y-pt012[maxdistpt[1]].y,pt012[maxdistpt[0]].x-pt012[maxdistpt[1]].x);
             //cout << "pt one: " << pt012[maxdistpt[0]].x << " , " << pt012[maxdistpt[0]].y << endl;
             //cout << "pt two: " << pt012[maxdistpt[1]].x << " , " << pt012[maxdistpt[1]].y << endl;
-            cout << "angle: " << angle*180/PI<< endl;
+            //cout << "angle: " << angle*180/PI<< endl;
             //minEllipse[i] = fitEllipse( Mat(contours[i]) );
 
             // REMEMBER IMAGE COORDINATES!!! AHHHH!
@@ -347,7 +341,7 @@ public:
             xymsg.magy.push_back(pt.y);
             xymsg.size.push_back(contourArea(hull[i]));
             xymsg.angle.push_back(angle);
-            anglevec[i] = angle;
+            anglevec[i] = angle; // radians
             //ROS_INFO_STREAM("ID " << i);
             //ROS_INFO_STREAM("Area " << contours[i].size());
             //cout << "x = " << pt.x << ", y = " << pt.y << " size hull = " << contourArea(hull[i]) <<" angle = " << minEllipse[i].angle << endl;
@@ -364,29 +358,77 @@ public:
             drawContours( drawing, hull, i, colorhull, 1, 8, vector<Vec4i>(), 0, Point() );
             circle( drawing, pt, 5, colorhull, 3, 8,0);          
             MyLine(drawing, pt, angle*180/PI);
+            count++;
           }
         }
      }
 
 
     sensor_msgs::ImagePtr imgout;
-
+    //Run this one time only!
     if(firstimg){
       // Initialize the location of robots with a click:
-      int firstrobotidx = initializeRobot(drawing, contours);
+      int firstrobotidx = initializeRobot(cv_ptr_mono->image, contours);
       angle_in_bearth = anglevec[firstrobotidx];
-      // area of robot
-      //robothullsize = abs(   )
       
       robothullsize = contourArea(Mat(approxContour[firstrobotidx]));
-      // last xy center of robot
 
-
+      // center of contour:
+      Moments mufirst;
+      mufirst = moments(contours[firstrobotidx], false);
+      robotlastposn = Point2f( mufirst.m10/mufirst.m00, mufirst.m01/mufirst.m00 );
       cout << "Init Angle: " << angle_in_bearth << endl;
       cout << "Robot size: " << robothullsize << endl;
-
-      cin.get();
+      cout << "Robot center: " << robotlastposn.x << " , " << robotlastposn.y << endl;
+      // publish robot stats only:
     }
+    else{
+      // find index for robot based on last posn
+      // publish rosmsg for robotonly_xymsg
+      double mindist = 10000;
+      int robotidx;
+      for(int i = 0; i < xymsg.magx.size() ; i++){
+        double tempdist;
+        tempdist = pow(xymsg.magx[i]-robotlastposn.x,2) + pow(xymsg.magy[i]-robotlastposn.y,2);
+        if(tempdist < mindist){
+          robotidx = i;
+          mindist = tempdist;
+        }
+      }
+
+      if(mindist < 10000)
+      {
+        robotlastposn.x = xymsg.magx[robotidx];
+        robotlastposn.y = xymsg.magy[robotidx];
+
+        Mat robotpixMat(3,1, CV_64FC1, 1);
+        Mat robotworldMat(3,1, CV_64FC1);
+        robotpixMat.at<double>(0,0) = robotlastposn.x ;
+        robotpixMat.at<double>(1,0) = robotlastposn.y ;
+        robotworldMat = H * robotpixMat;
+
+        //ROS_INFO_STREAM("robotposn (m) : " << robotworldMat);
+
+        //ROS_INFO_STREAM("robotposn: [ " << xymsg.magx[robotidx] << " , " << xymsg.magy[robotidx] << " ]");
+
+        double angle_zeroed_rad = xymsg.angle[robotidx] - angle_in_bearth;
+        double angle_zeroed_deg = angle_zeroed_rad*180/PI;
+
+        //update robotposn:
+        robotonly_xymsg.xyPixX.push_back((int)robotlastposn.x);
+        robotonly_xymsg.xyPixY.push_back((int)robotlastposn.y);
+        robotonly_xymsg.xySize.push_back(xymsg.size[robotidx]);
+        robotonly_xymsg.xyAnglerad.push_back(angle_zeroed_rad);
+        robotonly_xymsg.xyAngledeg.push_back(angle_zeroed_deg);
+
+        robotonly_xymsg.xyWorldX.push_back(robotworldMat.at<double>(0,0));
+        robotonly_xymsg.xyWorldY.push_back(robotworldMat.at<double>(1,0));
+        robotonly_xymsg.actrobot = 1;
+        robotonly_xymsg.sortidx.push_back(0);
+      }
+    }
+
+
       // Output modified video stream
       //image_pub_.publish(cv_ptr->toImageMsg());
       
@@ -405,6 +447,8 @@ public:
       cout<<"No blobs detected.  Turn on light?" << endl;
     // Output position vector
     xyMagnet_pub_.publish(xymsg);
+    xySingleRobot_pub_.publish(robotonly_xymsg);
+
   }
 };
 

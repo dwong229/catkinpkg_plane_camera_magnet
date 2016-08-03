@@ -47,8 +47,7 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
         //check if number exists in see references for magnets in visualization_filtered. 
         
         // if it exisits, run through filter.   
-    cout << data.xyPixX[magidx] << endl;
-    const KalmanFilter::Measurement_t meas(data.xyPixX[magidx],data.xyPixY[magidx]);
+    const KalmanFilter::Measurement_t meas(data.xyWorldX[magidx],data.xyWorldY[magidx]);
 
     
     if(data.xySize[magidx]!=0)
@@ -68,17 +67,17 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     // 4. Convert to xySorted coords
     
     
-    xyWorldX = (state(0) - centerpixx)/pix2m;
-    xyWorldY = (-state(1) + centerpixy)/pix2m;
-    xyWorldXdot = state(2)/pix2m;
-    xyWorldYdot = -state(3)/pix2m;
+    xyWorldX = state(0);
+    xyWorldY = state(1);
+    xyWorldXdot = state(2);
+    xyWorldYdot = state(3);
 
     // initialize
     //pupulate /kf_pose/magnetactual 
     magnetactual_msg.header.stamp = data.header.stamp;
     magnetactual_msg.header.frame_id = data.header.frame_id;
-    magnetactual_msg.xyPixX.assign(1,state(0));
-    magnetactual_msg.xyPixY.assign(1,state(1));
+    //magnetactual_msg.xyPixX.assign(1,state(0));
+    //magnetactual_msg.xyPixY.assign(1,state(1));
     magnetactual_msg.xySize.assign(1,data.xySize[magidx]);
     //magnetactual_msg.xyAngledeg.assign(1,data.xyAngledeg[magidx]);
     magnetactual_msg.xyAnglerad.assign(1,data.xyAnglerad[magidx]);
@@ -145,14 +144,14 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
     kfline_list.type = visualization_msgs::Marker::LINE_LIST;
 
     // POINTS markers use x and y scale for width/height respectively
-    kfpoints.scale.x = 1.5;
-    kfpoints.scale.y = 1.5;
-    rawpoints.scale.x = 0.1;
-    rawpoints.scale.y = 0.1;
+    kfpoints.scale.x = 0.001;
+    kfpoints.scale.y = 0.001;
+    rawpoints.scale.x = 0.001;
+    rawpoints.scale.y = 0.001;
 
     // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
-    kfline_strip.scale.x = 0.1;
-    kfline_list.scale.x = 0.1;
+    kfline_strip.scale.x = 0.001;
+    kfline_list.scale.x = 0.001;
 
     // set colors
     if(magidx == 0)
@@ -209,8 +208,8 @@ static void xyFiltered_callback(const plane_camera_magnet::xyFiltered& data)
 
     //ang.x = p.x +5*sin(data.xyAnglerad[magidx]);
     //ang.y = p.y +5*cos(data.xyAnglerad[magidx]);
-    ang.x = p.x +5*cos(data.xyAnglerad[magidx]);
-    ang.y = p.y +5*sin(data.xyAnglerad[magidx]);
+    ang.x = p.x +0.005*cos(data.xyAnglerad[magidx]);
+    ang.y = p.y -0.005*sin(data.xyAnglerad[magidx]);
     ang.z = 0;
     kfline_list.points.resize(4);
     kfline_list.points[0] = p;
@@ -232,14 +231,6 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "kf_pose");
 
     ros::NodeHandle n("~");
-
-    std::string cal_file;    
-    n.param("cal_file", cal_file, std::string("calplane.yml"));
-    ROS_INFO_STREAM("cal file " << cal_file);
-    cv::FileStorage fscal(cal_file.c_str(), cv::FileStorage::READ);
-    centerpixx = (double)fscal["coilavgx"];
-    centerpixy = (double)fscal["coilavgy"];
-    pix2m = (double)fscal["pix2m"];
 
     double max_accel;
     //set a max value

@@ -1,0 +1,17 @@
+<launch>
+<node name="dakf_pose"
+        pkg="plane_camera_magnet"
+        type="dakf_pose"
+        output="screen"
+	launch-prefix = "gdb -ex run --args">
+	<remap from="/filterpose/xyFiltered" to="/datracktri/xyPixRobot"/>
+        <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dacalplane.yml"/>
+	<param name="camera_fps" value = "60.0"/>
+        <param name="magidx" type="int" value="0" />
+    </node>
+    <node name="rviz"
+        pkg="rviz"
+        type="rviz"
+        args="-d $(find plane_camera_magnet)/calib/damagnet_mm.rviz">
+    </node>
+</launch>

@@ -1,0 +1,20 @@
+<launch>
+   <include file="$(find plane_camera_magnet)/launch/directed_assembly_monocam.launch"> 
+            <arg name="device" value="14434226"/>
+    </include>
+    <node   pkg="image_proc"
+            name="image_proc"
+            type="image_proc"
+            ns="pg_14434226">
+    </node>
+    <node   pkg="image_view" 
+            name = "disp"
+            type = "image_view" 
+            args="image:=/pg_14434226/image_rect" >
+    </node>
+    <node name="homography_calibration_stage"
+            pkg="plane_camera_magnet" 
+            type = "homography_calibration_stage"
+            output="screen">
+    </node>
+</launch>

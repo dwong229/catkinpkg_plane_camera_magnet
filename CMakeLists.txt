@@ -265,3 +265,14 @@ target_link_libraries(joystick_noskid_rviz
   plane_camera_magnet
 )
 
+add_executable(homography_calibration_stage src/homography_calibration_stage.cpp)
+target_link_libraries(homography_calibration_stage
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(dakf_pose src/dakf_pose.cpp)
+target_link_libraries(dakf_pose
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
