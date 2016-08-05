@@ -276,3 +276,9 @@ target_link_libraries(dakf_pose
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(controllersandbox src/controllersandbox.cpp)
+target_link_libraries(controllersandbox
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

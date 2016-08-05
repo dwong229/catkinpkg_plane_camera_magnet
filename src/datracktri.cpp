@@ -71,6 +71,8 @@ class ImageConverter
   double angle_in_bearth;
   double robothullsize; 
   Point2f robotlastposn;
+  plane_camera_magnet::xyFiltered robotonly_xymsglast; //publish
+
 
 public:
   ImageConverter() //Initialization:, constructor
@@ -288,6 +290,9 @@ public:
             pt.x = mc.x;
             pt.y = mc.y;
             
+            //ROS_INFO_STREAM("Ratio of m11: " << mu.m11);
+
+
             //if( pow(pt.x - 640,2) + pow(pt.y - 513,2) < pow(50,2))
             {
             // compute angle of triangle as perp to longest vertex:
@@ -347,11 +352,11 @@ public:
             //cout << "x = " << pt.x << ", y = " << pt.y << " size hull = " << contourArea(hull[i]) <<" angle = " << minEllipse[i].angle << endl;
 
             //draw
-            Scalar color = Scalar(255 , 255 * (count - 1), 0 );
+            Scalar color = Scalar(255 , 255, 0 );
 
-            if (count > 1){
-              Scalar color = Scalar(0, 255, 255);
-            }
+            //if (count > 1){
+            //  Scalar color = Scalar(0, 255, 255);
+            // }
             Scalar colorhull = Scalar(0,255,255);//Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
             //ellipse( drawing, minEllipse[i], color, 2, 8 );
             drawContours( drawing, approxContour, i, color, CV_FILLED,8,hierarchy);
@@ -375,11 +380,12 @@ public:
 
       // center of contour:
       Moments mufirst;
-      mufirst = moments(contours[firstrobotidx], false);
+      mufirst = moments(approxContour[firstrobotidx], false);
       robotlastposn = Point2f( mufirst.m10/mufirst.m00, mufirst.m01/mufirst.m00 );
       cout << "Init Angle: " << angle_in_bearth << endl;
       cout << "Robot size: " << robothullsize << endl;
       cout << "Robot center: " << robotlastposn.x << " , " << robotlastposn.y << endl;
+      //cout << "Ratio of m10:m01: " << mufirst.m11 << endl;
       // publish robot stats only:
     }
     else{
@@ -396,7 +402,20 @@ public:
         }
       }
 
-      if(mindist < 10000)
+      bool robot_identified = false;
+
+
+      if( (mindist < 10000))
+      {
+        robot_identified = true;
+      }
+      /*else if((abs(robothullsize-xymsg.size[robotidx])/robothullsize < 20))
+      {
+        robot_identified = true;
+      }
+      */
+
+      if(robot_identified)
       {
         robotlastposn.x = xymsg.magx[robotidx];
         robotlastposn.y = xymsg.magy[robotidx];
@@ -409,7 +428,7 @@ public:
 
         //ROS_INFO_STREAM("robotposn (m) : " << robotworldMat);
 
-        //ROS_INFO_STREAM("robotposn: [ " << xymsg.magx[robotidx] << " , " << xymsg.magy[robotidx] << " ]");
+        ROS_INFO_STREAM("robotposn: [ " << xymsg.magx[robotidx] << " , " << xymsg.magy[robotidx] << " ]");
 
         double angle_zeroed_rad = xymsg.angle[robotidx] - angle_in_bearth;
         double angle_zeroed_deg = angle_zeroed_rad*180/PI;
@@ -425,6 +444,15 @@ public:
         robotonly_xymsg.xyWorldY.push_back(robotworldMat.at<double>(1,0));
         robotonly_xymsg.actrobot = 1;
         robotonly_xymsg.sortidx.push_back(0);
+
+        Scalar color = Scalar(255, 0, 0);
+        drawContours( drawing, approxContour, robotidx, color, CV_FILLED,8,hierarchy,1);
+        robotonly_xymsglast = robotonly_xymsg;
+      }
+      else{
+        ROS_INFO_STREAM("Cannot find robot. Post old position");
+        robotonly_xymsg = robotonly_xymsglast;
+        robotonly_xymsglast.actrobot = 0; //to indicate not updated and using last known location.
       }
     }
 
