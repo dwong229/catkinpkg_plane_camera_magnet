@@ -282,3 +282,15 @@ target_link_libraries(controllersandbox
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(da_controller_noskid src/da_controller_noskid.cpp)
+target_link_libraries(da_controller_noskid
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(controller_linear src/controller_linear.cpp)
+target_link_libraries(controller_linear
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)

@@ -7,6 +7,7 @@
 #include <visualization_msgs/Marker.h> //for rvis visualization
 #include <plane_camera_magnet/roboclawCmd.h>
 #include <math.h>
+#include <opencv2/opencv.hpp>
 
 
 typedef Eigen::Vector3d Vec3;

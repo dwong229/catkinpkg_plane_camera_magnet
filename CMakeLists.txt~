@@ -276,3 +276,21 @@ target_link_libraries(dakf_pose
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(controllersandbox src/controllersandbox.cpp)
+target_link_libraries(controllersandbox
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(da_controller_noskid src/da_controller_noskid.cpp)
+target_link_libraries(da_controller_noskid
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(da_controller_linear src/da_controller_linear.cpp)
+target_link_libraries(da_controller_linear
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
