@@ -17,7 +17,7 @@
             type = "datracktri"
             output="screen">
             <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dahomography.yml"/>
-            <param name="param_file" value = "$(find plane_camera_magnet)/calib/paramda.yml"/>
+            <param name="param_file" value = "$(find plane_camera_magnet)/calib/paramda_smcotri.yml"/>
     	</node>
 	<node name="rqt_image_view"
 		pkg="rqt_image_view"

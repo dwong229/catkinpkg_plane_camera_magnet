@@ -289,8 +289,14 @@ target_link_libraries(da_controller_noskid
   plane_camera_magnet
 )
 
-add_executable(da_controller_linear src/da_controller_linear.cpp)
-target_link_libraries(da_controller_linear
+add_executable(controller_linear src/controller_linear.cpp)
+target_link_libraries(controller_linear
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(da_tracksmcorod src/da_tracksmcorod.cpp)
+target_link_libraries(da_tracksmcorod
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )

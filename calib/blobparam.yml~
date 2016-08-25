@@ -1,9 +1,9 @@
 %YAML:1.0
-minThreshold: 0
-maxThreshold: 10
+minThreshold: 80
+maxThreshold: 255
 thresholdStep: 2
 minArea: 30
-maxArea: 100
+maxArea: 200
 minConvexity: 0.7
 maxConvexity: 10
 minInertiaRatio: 0

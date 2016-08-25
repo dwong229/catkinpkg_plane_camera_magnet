@@ -85,7 +85,7 @@ public:
         current_desired.m3 = 0;
         current_desired.m4 = 0;
 
-        double kp = 500;
+        double kp = 400; //500; works well for rubbertri
 
         double maxvolt = 5;
         double xsignal = dgoal.x * kp;

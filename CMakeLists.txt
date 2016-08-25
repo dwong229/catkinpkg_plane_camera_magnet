@@ -294,3 +294,9 @@ target_link_libraries(controller_linear
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )
+
+add_executable(datrack_smcorod src/datrack_smcorod.cpp)
+target_link_libraries(datrack_smcorod
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
