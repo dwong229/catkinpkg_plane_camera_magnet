@@ -295,8 +295,14 @@ target_link_libraries(controller_linear
   plane_camera_magnet
 )
 
-add_executable(da_tracksmcorod src/da_tracksmcorod.cpp)
-target_link_libraries(da_tracksmcorod
+add_executable(datrack_smcorod src/datrack_smcorod.cpp)
+target_link_libraries(datrack_smcorod
+  ${catkin_LIBRARIES}
+  plane_camera_magnet
+)
+
+add_executable(sandbox_image_click src/sandbox_image_click.cpp)
+target_link_libraries(sandbox_image_click
   ${catkin_LIBRARIES}
   plane_camera_magnet
 )

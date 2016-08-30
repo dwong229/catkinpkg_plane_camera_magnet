@@ -1,0 +1,13 @@
+<launch>
+	<node name="image_click"
+            pkg="plane_camera_magnet" 
+            type = "sandbox_image_click"
+            output="screen">
+            <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dahomography.yml"/>
+    	</node>
+	<node name="controller"
+		pkg="plane_camera_magnet"
+		type = "controller_linear_input"
+		output="screen">
+	</node>
+</launch>
