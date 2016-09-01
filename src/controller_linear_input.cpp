@@ -15,6 +15,8 @@ using namespace Eigen;
 using namespace std;
 using std::sqrt;
 
+double freq;
+
 class CurrentCalc
 {
     ros::NodeHandle nh_;
@@ -34,6 +36,14 @@ class CurrentCalc
     Vector2d m; //magnetic moment
 
     cv::Point2f goal; //goal in world coordinates
+
+    bool goalreached; //true is goal reached within goalthresh.  //false 
+    double goalthresh; //distance metric to consider goal reached.
+
+    // integral term error:
+    vector<double> errorx, errory;
+    double integrateerror[2];
+    int errorhistorylength = 10000;
     
 public:
     CurrentCalc()
@@ -47,7 +57,11 @@ public:
 
         current_pub_ = nh_.advertise<plane_camera_magnet::roboclawCmd>("currentcmddesired",1);
 
+        goalthresh = 0.001; //1 mm
 
+        errorx.clear();
+        errory.clear();
+        integrateerror[0] = integrateerror[1] = 0;
     }
 
     ~CurrentCalc()
@@ -72,14 +86,20 @@ public:
 
         dgoal.x = goal.x - magnet.x;
         dgoal.y = goal.y - magnet.y;
-        
+      
         dgoal_norm = sqrt(pow(dgoal.x,2) + pow(dgoal.y,2));
 
-        current_desired.fx = dgoal.x;
-        current_desired.fy = dgoal.y;
+        errorx.push_back((dgoal.x)/freq);
+        errory.push_back((dgoal.y)/freq);
 
-        current_desired.xdes.assign(1,goal.x);
-        current_desired.ydes.assign(1,goal.y);
+        int errorsize = errorx.size();
+
+        if(errorx.size()>errorhistorylength)
+        {
+            errorx.erase(errorx.begin(),errorx.begin()+1);
+            errory.erase(errory.begin(),errory.begin()+1);
+
+        }
 
         // +/- 5V
         current_desired.m1 = 0;
@@ -87,34 +107,69 @@ public:
         current_desired.m3 = 0;
         current_desired.m4 = 0;
 
-        double kp = 350;//24000 for distance 2; //500; works well for rubbertri
+        if (dgoal_norm < goalthresh){
+            goalreached = true;
+            ROS_INFO_STREAM("~~ GOAL REACHED ~~");
+            // leave: current_desired = 0 
 
-        double maxvolt = 5;
-        double minvolt = 0;
-        double xsignal = pow(dgoal.x,1) * kp;
-        double ysignal = pow(dgoal.y,1) * kp;
+            // clear error vectors.
+            errorx.clear();
+            errory.clear();
 
-
-        if (dgoal.x > 0)
-        {
-          current_desired.m3 = min(abs(xsignal),maxvolt);
-          current_desired.m3 = max(current_desired.m3,minvolt);
         }
-        else
-        {
-          current_desired.m1 = min(abs(xsignal),maxvolt);
-          current_desired.m1 = max(current_desired.m1,minvolt);
-        }
+        else{
+            integrateerror[0] = std::accumulate(errorx.begin(),errorx.end(),0.0);
+            integrateerror[1] = std::accumulate(errory.begin(),errory.end(),0.0);
 
-        if (dgoal.y > 0)
-        {
-          current_desired.m2 = min(abs(ysignal),maxvolt);
-          current_desired.m2 = max(current_desired.m2,minvolt);
-        }
-        else
-        {
-          current_desired.m4 = min(abs(ysignal),maxvolt);
-          current_desired.m4 = max(current_desired.m4,minvolt);
+            double maxinterror = 100;
+            for(int erridx = 0; erridx < 2; erridx++)
+                {
+                    if(abs(integrateerror[erridx]) > maxinterror)
+                    {
+                        integrateerror[erridx] = maxinterror * integrateerror[erridx]/abs(integrateerror[erridx]);
+                    }
+                }
+
+            ROS_INFO_STREAM_THROTTLE(0.1,"integrateerror: " << integrateerror[0] <<", " << integrateerror[1]);
+
+
+            current_desired.fx = dgoal.x;
+            current_desired.fy = dgoal.y;
+
+            current_desired.xdes.assign(1,goal.x);
+            current_desired.ydes.assign(1,goal.y);
+
+            double kp = 600;//24000 for distance 2; //500; works well for rubbertri
+            double ki = 50;
+
+            double maxvolt = 5;
+            double minvolt = 0;
+            double xsignal = pow(dgoal.x,1) * kp + integrateerror[0] * ki;
+            double ysignal = pow(dgoal.y,1) * kp + integrateerror[1] * ki;
+
+
+            if (dgoal.x > 0)
+            {
+              current_desired.m3 = min(abs(xsignal),maxvolt);
+              current_desired.m3 = max(current_desired.m3,minvolt);
+            }
+            else
+            {
+              current_desired.m1 = min(abs(xsignal),maxvolt);
+              current_desired.m1 = max(current_desired.m1,minvolt);
+            }
+
+            if (dgoal.y > 0)
+            {
+              current_desired.m2 = min(abs(ysignal),maxvolt);
+              current_desired.m2 = max(current_desired.m2,minvolt);
+            }
+            else
+            {
+              current_desired.m4 = min(abs(ysignal),maxvolt);
+              current_desired.m4 = max(current_desired.m4,minvolt);
+            }
+
         }
         //ROS_INFO_STREAM("current: " << last_pose_.xyWorldX[0] << last_pose_.xyWorldY[0]);
 
@@ -158,8 +213,9 @@ int main(int argc, char** argv)
     ros::NodeHandle n("~");
 
     CurrentCalc cc;
+    freq = 30.0;
 
-    ros::Rate r(10.0); //controls current command publishing rate
+    ros::Rate r(freq); //controls current command publishing rate
     while (n.ok()) {
         cc.update();
         r.sleep();

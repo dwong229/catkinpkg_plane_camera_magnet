@@ -2,8 +2,7 @@
 <node name="dakf_pose"
         pkg="plane_camera_magnet"
         type="dakf_pose"
-        output="screen"
-	launch-prefix = "gdb -ex run --args">
+        output="screen">
 	<remap from="/filterpose/xyFiltered" to="/datracktri/xyPixRobot"/>
         <param name="cal_file" value = "$(find plane_camera_magnet)/calib/dacalplane.yml"/>
 	<param name="camera_fps" value = "60.0"/>

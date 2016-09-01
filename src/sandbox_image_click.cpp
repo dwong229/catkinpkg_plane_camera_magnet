@@ -26,6 +26,13 @@ using namespace cv;
 
 static const std::string OPENCV_WINDOW = "Input";
 
+/**
+ * sandbox_image_click.cpp:
+ * subscribes to the /_camera_/image_rect and waits for user to click on a point
+ * to identify goal location.  
+ * publishes goal position in plane_camera_magnet/xyFiltered message.
+*/
+
 class ImageInput
 {
     ros::NodeHandle nh_;
@@ -34,7 +41,6 @@ class ImageInput
     image_transport::Publisher image_pub_;
 
     ros::Publisher goal_pub_;
-
 
     Mat H;
     Point2f lastclick;
@@ -60,6 +66,10 @@ public:
         fscal["H"] >> H;
         cout<< "H: " << H << endl;
 
+        Mat Hinv = H.inv();
+
+        lastclick.x = Hinv.at<double>(0,2);
+        lastclick.y = Hinv.at<double>(1,2);
     }
 
     void imageCb(const sensor_msgs::ImageConstPtr& msg)
@@ -106,7 +116,6 @@ public:
 
 
         // convert to world coords:
-
         goal_pub_.publish(goal_msg);
         cv::waitKey(1);
         //ROS_INFO_STREAM("Last click: " << lastclick.x << " , " << lastclick.y);
